@@ -83,6 +83,12 @@ private def expectType (ref : Syntax) (actual expected : Ty) : TermElabM Unit :=
   unless actual = expected do
     throwErrorAt ref "MPSL type mismatch: expected {expected.format}, got {actual.format}"
 
+private def expectsFormula (expectedType : Lean.Expr) : TermElabM Bool := do
+  let expectedType ← Lean.Meta.whnf expectedType
+  let arguments := expectedType.getAppArgs
+  return expectedType.getAppFn.constName? == some ``MPSL.Expr &&
+    arguments.size == 4 && arguments[3]!.constName? == some ``MPSL.Ty.iprop
+
 private def expectSameType (ref : Syntax) (left right : Ty) : TermElabM Unit :=
   unless left = right do
     throwErrorAt ref "MPSL type mismatch: left side has type {left.format}, right side has type {right.format}"
@@ -309,7 +315,8 @@ private partial def compileExpr (ctx : Context) : Syntax -> TermElabM CompiledEx
 elab_rules : term <= expectedType
   | `(mpsl{ $body:mpslTerm }) => do
       let body ← compileExpr [] body
-      expectType body.term body.ty .iprop
+      if ← expectsFormula expectedType then
+        expectType body.term body.ty .iprop
       elabTerm body.term (some expectedType)
 
 end MPSL.Elab

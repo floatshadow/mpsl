@@ -61,6 +61,149 @@ example (P Q : Formula Nat String) :
   mdestruct h as hwand hP
   mapply
 
+example (P Q R : Formula Nat String) :
+    mpsl{ (embed[iProp](P) ∗ embed[iProp](Q)) ∗ embed[iProp](R) } ⊢
+    mpsl{ embed[iProp](P) ∗ embed[iProp](Q) } := by
+  mstart h
+  mdestruct h as hPQ hR
+  mexact hPQ
+
+example (P Q R : Formula Nat String) :
+    mpsl{ (embed[iProp](P) ∗ embed[iProp](Q)) ∗ embed[iProp](R) } ⊢
+    mpsl{ (embed[iProp](P) ∗ embed[iProp](Q)) ∗ True } := by
+  mstart h
+  mdestruct h as hPQ hR
+  mframe hPQ
+  mtruth
+
+example (P Q R : Formula Nat String) :
+    mpsl{ (embed[iProp](P) ∗ embed[iProp](Q)) ∗ embed[iProp](R) } ⊢ P := by
+  mstart h
+  mdestruct h as hPQ hR
+  mdestruct hPQ as hP hQ
+  mexact hP
+
+example (P Q R : Formula Nat String) :
+    mpsl{ embed[iProp](P) ∗ embed[iProp](Q) ∗ embed[iProp](R) } ⊢
+    mpsl{ (embed[iProp](P) ∗ embed[iProp](Q)) ∗ True } := by
+  mstart h
+  mdestruct h as hP hQR
+  mdestruct hQR as hQ hR
+  mframe [hP, hQ]
+  mtruth
+
+example (P Q R : Formula Nat String) :
+    mpsl{ embed[iProp](P) ∗ embed[iProp](Q) ∗ embed[iProp](R) } ⊢
+    mpsl{ (embed[iProp](Q) ∗ embed[iProp](R)) ∗ True } := by
+  mstart h
+  mdestruct h as hP hQR
+  mdestruct hQR as hQ hR
+  mframe [hQ, hR]
+  mtruth
+
+example (P Q R : Formula Nat String) :
+    mpsl{ embed[iProp](P) ∗ embed[iProp](Q) ∗ embed[iProp](R) } ⊢
+    mpsl{ (embed[iProp](P) ∗ embed[iProp](R)) ∗ True } := by
+  mstart h
+  mdestruct h as hP hQR
+  mdestruct hQR as hQ hR
+  mframe [hP, hR]
+  mtruth
+
+example (P Q R : Formula Nat String) :
+    mpsl{ embed[iProp](P) ∗ embed[iProp](Q) ∗ embed[iProp](R) } ⊢
+    mpsl{ (embed[iProp](R) ∗ embed[iProp](P) ∗ embed[iProp](Q)) ∗ True } := by
+  mstart h
+  mdestruct h as hP hQR
+  mdestruct hQR as hQ hR
+  mframe [hR, hP, hQ]
+  mtruth
+
+example :
+    (mpsl{ True } : Formula Nat String) ⊢ mpsl{ ∃ x : loc, x =[loc] loc(0) } := by
+  mstart h
+  mexists loc(0)
+  mrefl
+
+example :
+    (mpsl{ True } : Formula Nat String) ⊢ mpsl{ ∀ x : loc, x =[loc] x } := by
+  mstart h
+  mforall x
+  mrefl
+
+example :
+    (mpsl{ ∀ x : loc, x =[loc] x } : Formula Nat String) ⊢
+    mpsl{ loc(0) =[loc] loc(0) } := by
+  mstart h
+  mspecialize h at loc(0) as hzero
+  mexact hzero
+
+example :
+    (mpsl{ ∃ x : loc, x =[loc] x } : Formula Nat String) ⊢ mpsl{ True } := by
+  mstart h
+  mopenexists h as x hx
+  mtruth
+
+example (P : Formula Nat String) :
+    mpsl{ □ embed[iProp](P) } ⊢ mpsl{ embed[iProp](P) ∗ embed[iProp](P) } := by
+  mstart h
+  mdup h as h1 h2
+  mopen h1 as hP1
+  mopen h2 as hP2
+  msep
+  · mexact hP1
+  · mexact hP2
+
+example :
+    (mpsl{ True } : Formula Nat String) ⊢ mpsl{ □ True } := by
+  mstart h
+  mclear h
+  malways
+  mtruth
+
+example (P : Formula Nat String) : P ⊢ mpsl{ ▷ embed[iProp](P) } := by
+  mstart hP
+  mlater
+  mexact hP
+
+example (P : Formula Nat String) :
+  mpsl{ ▷ embed[iProp](P) } ⊢ mpsl{ ▷ embed[iProp](P) } := by
+  mstart h
+  mopenlater h as hP
+  mexact hP
+
+example (P : Formula Nat String) :
+    mpsl{ False ∧ embed[iProp](P) } ⊢ P := by
+  mstart h
+  mdestruct h as hfalse hP
+  mfalse hfalse
+
+example :
+    (mpsl{ True } : Formula Nat String) ⊢
+    mpsl{ (λ x : iProp, x)(True) } := by
+  mstart h
+  mnormalize
+  exact IProp.entails_refl IProp.truth
+
+example : Unit := by
+  fail_if_success
+    have invalidFrame :
+        (mpsl{ True ∧ False } : Formula Nat String) ⊢
+        mpsl{ True ∗ True } := by
+      mstart h
+      mdestruct h as hP hQ
+      mframe hP
+  exact Unit.unit
+
+example : Unit := by
+  fail_if_success
+    have invalidAlways :
+        (mpsl{ loc(0) ↦ val("value") } : Formula Nat String) ⊢
+        mpsl{ □ (loc(0) ↦ val("value")) } := by
+      mstart hP
+      malways
+  exact Unit.unit
+
 example :
     mpsl{ (loc(0) ↦ val("left")) ∗ (loc(0) ↦ val("right")) } ⊢
     (mpsl{ False } : Formula Nat String) := by

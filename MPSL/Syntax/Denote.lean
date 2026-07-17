@@ -62,6 +62,76 @@ theorem equivAt_mono (Loc : Type u) (Val : Type v) (ty : Ty)
       intro value
       exact codomainIH (equivalent value)
 
+theorem equivAt_refl (Loc : Type u) (Val : Type v) (ty : Ty)
+    {step : Nat} (value : denote Loc Val ty) : EquivAt Loc Val ty step value value := by
+  induction ty with
+  | loc => rfl
+  | val => rfl
+  | iprop =>
+      intro heap
+      exact SProp.equivAt_refl step (value.holds heap)
+  | empty => exact Empty.elim value.down
+  | unit => trivial
+  | prod left right leftIH rightIH => exact ⟨leftIH value.1, rightIH value.2⟩
+  | sum left right leftIH rightIH =>
+      cases value with
+      | inl value => exact leftIH value
+      | inr value => exact rightIH value
+  | arr domain codomain domainIH codomainIH =>
+      intro argument
+      exact codomainIH (value argument)
+
+theorem equivAt_symm (Loc : Type u) (Val : Type v) (ty : Ty)
+    {step : Nat} {left right : denote Loc Val ty} :
+    EquivAt Loc Val ty step left right -> EquivAt Loc Val ty step right left := by
+  intro equivalent
+  induction ty with
+  | loc => exact equivalent.symm
+  | val => exact equivalent.symm
+  | iprop => intro heap; exact SProp.equivAt_symm (equivalent heap)
+  | empty => exact Empty.elim left.down
+  | unit => trivial
+  | prod leftTy rightTy leftIH rightIH => exact ⟨leftIH equivalent.1, rightIH equivalent.2⟩
+  | sum leftTy rightTy leftIH rightIH =>
+      cases left <;> cases right
+      · exact leftIH equivalent
+      · exact equivalent
+      · exact equivalent
+      · exact rightIH equivalent
+  | arr domain codomain domainIH codomainIH =>
+      intro argument
+      exact codomainIH (equivalent argument)
+
+theorem equivAt_trans (Loc : Type u) (Val : Type v) (ty : Ty)
+    {step : Nat} {first second third : denote Loc Val ty} :
+    EquivAt Loc Val ty step first second ->
+    EquivAt Loc Val ty step second third ->
+    EquivAt Loc Val ty step first third := by
+  intro firstSecond secondThird
+  induction ty with
+  | loc => exact firstSecond.trans secondThird
+  | val => exact firstSecond.trans secondThird
+  | iprop =>
+      intro heap
+      exact SProp.equivAt_trans (firstSecond heap) (secondThird heap)
+  | empty => exact Empty.elim first.down
+  | unit => trivial
+  | prod leftTy rightTy leftIH rightIH =>
+      exact ⟨leftIH firstSecond.1 secondThird.1, rightIH firstSecond.2 secondThird.2⟩
+  | sum leftTy rightTy leftIH rightIH =>
+      cases first <;> cases second <;> cases third
+      · exact leftIH firstSecond secondThird
+      · exact False.elim secondThird
+      · exact False.elim firstSecond
+      · exact False.elim firstSecond
+      · exact False.elim firstSecond
+      · exact False.elim firstSecond
+      · exact False.elim secondThird
+      · exact rightIH firstSecond secondThird
+  | arr domain codomain domainIH codomainIH =>
+      intro argument
+      exact codomainIH (firstSecond argument) (secondThird argument)
+
 end Ty
 
 /-- A semantic environment matching an intrinsic object-language context. -/
@@ -108,40 +178,17 @@ def denote [DecidableEq Loc] {ctx : List Ty} {ty : Ty} :
   | @Expr.eq _ _ _ comparedTy left right, environment =>
       let leftValue := denote left environment
       let rightValue := denote right environment
-      { holds := fun _ =>
-          { steps := fun step => Ty.EquivAt Loc Val comparedTy step leftValue rightValue
-            downward := by
-              intro smaller larger included equivalent
-              exact Ty.equivAt_mono Loc Val comparedTy included equivalent }
-        monotone := by
-          intro smallerHeap largerHeap included step equivalent
-          exact equivalent }
+      IProp.equal (Ty.EquivAt Loc Val comparedTy)
+        (Ty.equivAt_mono Loc Val comparedTy) leftValue rightValue
   | .imp left right, environment => IProp.imp (denote left environment) (denote right environment)
   | .and left right, environment => IProp.and (denote left environment) (denote right environment)
   | .or left right, environment => IProp.or (denote left environment) (denote right environment)
   | .sep left right, environment => IProp.sep (denote left environment) (denote right environment)
   | .wand left right, environment => IProp.wand (denote left environment) (denote right environment)
   | .ex body, environment =>
-      { holds := fun heap =>
-          { steps := fun step => exists witness, step ∈ (denote body (.cons witness environment)).holds heap
-            downward := by
-              intro smaller larger included holds
-              obtain ⟨witness, witnessHolds⟩ := holds
-              exact ⟨witness,
-                (denote body (.cons witness environment)).holds heap |>.downward included witnessHolds⟩ }
-        monotone := by
-          intro smallerHeap largerHeap included step holds
-          obtain ⟨witness, witnessHolds⟩ := holds
-          exact ⟨witness, (denote body (.cons witness environment)).monotone included witnessHolds⟩ }
+      IProp.exists_ fun witness => denote body (.cons witness environment)
   | .all body, environment =>
-      { holds := fun heap =>
-          { steps := fun step => forall witness, step ∈ (denote body (.cons witness environment)).holds heap
-            downward := by
-              intro smaller larger included holds witness
-              exact (denote body (.cons witness environment)).holds heap |>.downward included (holds witness) }
-        monotone := by
-          intro smallerHeap largerHeap included step holds witness
-          exact (denote body (.cons witness environment)).monotone included (holds witness) }
+      IProp.forall_ fun witness => denote body (.cons witness environment)
   | .pointsTo location value, environment =>
       IProp.pointsTo (denote location environment).down (denote value environment).down
   | .always proposition, environment => IProp.always (denote proposition environment)

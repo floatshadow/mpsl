@@ -65,6 +65,18 @@ theorem disjoint_symm {left right : Heap Loc Val} :
   intro disjoint location rightValue leftValue rightFound leftFound
   exact disjoint location leftValue rightValue leftFound rightFound
 
+theorem disjoint_of_subheap_left {small large extra : Heap Loc Val}
+    (included : small ⊑ large) (disjoint : Disjoint large extra) :
+    Disjoint small extra := by
+  intro location smallValue extraValue smallFound extraFound
+  exact disjoint location smallValue extraValue
+    (included location smallValue smallFound) extraFound
+
+theorem disjoint_of_subheap_right {extra small large : Heap Loc Val}
+    (included : small ⊑ large) (disjoint : Disjoint extra large) :
+    Disjoint extra small :=
+  disjoint_symm (disjoint_of_subheap_left included (disjoint_symm disjoint))
+
 theorem disjoint_empty_left (heap : Heap Loc Val) : Disjoint empty heap := by
   intro location value _ found
   simp [empty] at found
@@ -105,6 +117,34 @@ theorem union_empty_left (heap : Heap Loc Val) : union empty heap = heap := by
 theorem union_empty_right (heap : Heap Loc Val) : union heap empty = heap := by
   funext location
   cases found : heap location <;> simp [union, empty, found]
+
+theorem union_assoc (first second third : Heap Loc Val) :
+    union (union first second) third = union first (union second third) := by
+  funext location
+  cases firstFound : first location <;>
+    cases secondFound : second location <;>
+    simp [union, firstFound, secondFound]
+
+theorem disjoint_union_right {first second third : Heap Loc Val}
+    (firstSecond : Disjoint first second) (firstThird : Disjoint first third) :
+    Disjoint first (union second third) := by
+  intro location firstValue unionValue firstFound unionFound
+  cases secondFound : second location with
+  | some secondValue =>
+      have sameValue : secondValue = unionValue := by
+        simpa [union, secondFound] using unionFound
+      subst unionValue
+      exact firstSecond location firstValue secondValue firstFound secondFound
+  | none =>
+      have thirdFound : third location = some unionValue := by
+        simpa [union, secondFound] using unionFound
+      exact firstThird location firstValue unionValue firstFound thirdFound
+
+theorem disjoint_union_left {first second third : Heap Loc Val}
+    (firstThird : Disjoint first third) (secondThird : Disjoint second third) :
+    Disjoint (union first second) third := by
+  exact disjoint_symm
+    (disjoint_union_right (disjoint_symm firstThird) (disjoint_symm secondThird))
 
 theorem union_self {left right : Heap Loc Val} :
     Disjoint left right -> union left right ⊑ union left right := by

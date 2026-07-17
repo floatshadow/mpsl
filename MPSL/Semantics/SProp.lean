@@ -64,6 +64,23 @@ def later (proposition : SProp) : SProp where
             have smallerIncluded : smaller <= previous := by omega
             exact proposition.downward smallerIncluded previousHolds
 
+@[simp]
+theorem zero_mem_later (proposition : SProp) : 0 ∈ later proposition := by
+  exact Or.inl rfl
+
+theorem succ_mem_later_iff (proposition : SProp) (step : Nat) :
+    step + 1 ∈ later proposition ↔ step ∈ proposition := by
+  constructor
+  · intro holds
+    cases holds with
+    | inl zero => omega
+    | inr observed =>
+        obtain ⟨previous, sameStep, previousHolds⟩ := observed
+        have : previous = step := by omega
+        simpa [this] using previousHolds
+  · intro holds
+    exact Or.inr ⟨step, rfl, holds⟩
+
 /-- Agreement through the given observation step. -/
 def EquivAt (step : Nat) (left right : SProp) : Prop :=
   forall smaller, smaller <= step -> (smaller ∈ left ↔ smaller ∈ right)

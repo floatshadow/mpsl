@@ -6,7 +6,7 @@ namespace MPSL.IProp
 
 open scoped Heap
 
-universe u v
+universe u v w
 
 variable {Loc : Type u} {Val : Type v}
 
@@ -110,6 +110,57 @@ def later (proposition : IProp Loc Val) : IProp Loc Val where
         obtain ⟨previous, stepValue, previousHolds⟩ := observed
         exact Or.inr ⟨previous, stepValue, proposition.monotone included previousHolds⟩
 
+def equal {Carrier : Type w} (equivAt : Nat -> Carrier -> Carrier -> Prop)
+    (equivAtMono : forall {smaller larger left right},
+      smaller <= larger -> equivAt larger left right -> equivAt smaller left right)
+    (left right : Carrier) : IProp Loc Val where
+  holds := fun _ =>
+    { steps := fun step => equivAt step left right
+      downward := by
+        intro smaller larger included equivalent
+        exact equivAtMono included equivalent }
+  monotone := by
+    intro smaller larger included step equivalent
+    exact equivalent
+
+def exists_ {Witness : Type w} (body : Witness -> IProp Loc Val) : IProp Loc Val where
+  holds := fun heap =>
+    { steps := fun step => exists witness, step ∈ (body witness).holds heap
+      downward := by
+        intro smaller larger included holds
+        obtain ⟨witness, witnessHolds⟩ := holds
+        exact ⟨witness, (body witness).holds heap |>.downward included witnessHolds⟩ }
+  monotone := by
+    intro smaller larger included step holds
+    obtain ⟨witness, witnessHolds⟩ := holds
+    exact ⟨witness, (body witness).monotone included witnessHolds⟩
+
+def forall_ {Witness : Type w} (body : Witness -> IProp Loc Val) : IProp Loc Val where
+  holds := fun heap =>
+    { steps := fun step => forall witness, step ∈ (body witness).holds heap
+      downward := by
+        intro smaller larger included holds witness
+        exact (body witness).holds heap |>.downward included (holds witness) }
+  monotone := by
+    intro smaller larger included step holds witness
+    exact (body witness).monotone included (holds witness)
+
+theorem truth_intro (proposition : IProp Loc Val) : proposition ⊢ᵢ truth := by
+  intro heap step holds
+  trivial
+
+theorem falsum_elim (proposition : IProp Loc Val) : falsum ⊢ᵢ proposition := by
+  intro heap step holds
+  exact False.elim holds
+
+theorem equal_refl {Carrier : Type w} (equivAt : Nat -> Carrier -> Carrier -> Prop)
+    (equivAtMono : forall {smaller larger left right},
+      smaller <= larger -> equivAt larger left right -> equivAt smaller left right)
+    (equivAtRefl : forall step value, equivAt step value value) (value : Carrier) :
+    (@truth Loc Val) ⊢ᵢ (@equal Loc Val Carrier equivAt equivAtMono value value) := by
+  intro heap step holds
+  exact equivAtRefl step value
+
 theorem and_intro {premise left right : IProp Loc Val} :
     premise ⊢ᵢ left -> premise ⊢ᵢ right -> premise ⊢ᵢ and left right := by
   intro toLeft toRight heap step holds
@@ -122,6 +173,11 @@ theorem and_elim_left (left right : IProp Loc Val) : and left right ⊢ᵢ left 
 theorem and_elim_right (left right : IProp Loc Val) : and left right ⊢ᵢ right := by
   intro heap step holds
   exact holds.2
+
+theorem and_mono {left right left' right' : IProp Loc Val} :
+    left ⊢ᵢ left' -> right ⊢ᵢ right' -> and left right ⊢ᵢ and left' right' := by
+  intro leftRule rightRule heap step holds
+  exact ⟨leftRule heap step holds.1, rightRule heap step holds.2⟩
 
 theorem or_intro_left (left right : IProp Loc Val) : left ⊢ᵢ or left right := by
   intro heap step holds
@@ -186,6 +242,56 @@ theorem sep_comm (left right : IProp Loc Val) : sep left right ⊢ᵢ sep right 
               (disjoint location leftValue rightValue leftFound rightFound)
       simp [Heap.union, leftFound, rightMissing]
 
+theorem sep_truth_left (proposition : IProp Loc Val) : sep truth proposition ⊢ᵢ proposition :=
+  sep_elim_right truth proposition
+
+theorem sep_truth_right (proposition : IProp Loc Val) : sep proposition truth ⊢ᵢ proposition :=
+  sep_elim_left proposition truth
+
+theorem sep_truth_intro_left (proposition : IProp Loc Val) : proposition ⊢ᵢ sep truth proposition := by
+  intro heap step holds
+  exact ⟨Heap.empty, heap, Heap.disjoint_empty_left heap, Heap.union_empty_left heap,
+    True.intro, holds⟩
+
+theorem sep_truth_intro_right (proposition : IProp Loc Val) : proposition ⊢ᵢ sep proposition truth := by
+  exact entails_trans (sep_truth_intro_left proposition) (sep_comm truth proposition)
+
+theorem sep_assoc_left (first second third : IProp Loc Val) :
+    sep (sep first second) third ⊢ᵢ sep first (sep second third) := by
+  intro heap step holds
+  obtain ⟨firstSecondHeap, thirdHeap, firstSecondThird, combinedOuter,
+    firstSecondHolds, thirdHolds⟩ := holds
+  obtain ⟨firstHeap, secondHeap, firstSecond, combinedInner,
+    firstHolds, secondHolds⟩ := firstSecondHolds
+  have firstThird : Heap.Disjoint firstHeap thirdHeap :=
+    Heap.disjoint_of_subheap_left
+      (Heap.subheap_of_union_eq_left combinedInner) firstSecondThird
+  have secondThird : Heap.Disjoint secondHeap thirdHeap :=
+    Heap.disjoint_of_subheap_left
+      (Heap.subheap_of_union_eq_right firstSecond combinedInner) firstSecondThird
+  refine ⟨firstHeap, Heap.union secondHeap thirdHeap,
+    Heap.disjoint_union_right firstSecond firstThird, ?_, firstHolds, ?_⟩
+  · rw [← combinedOuter, ← combinedInner, Heap.union_assoc]
+  · exact ⟨secondHeap, thirdHeap, secondThird, rfl, secondHolds, thirdHolds⟩
+
+theorem sep_assoc_right (first second third : IProp Loc Val) :
+    sep first (sep second third) ⊢ᵢ sep (sep first second) third := by
+  intro heap step holds
+  obtain ⟨firstHeap, secondThirdHeap, firstSecondThird, combinedOuter,
+    firstHolds, secondThirdHolds⟩ := holds
+  obtain ⟨secondHeap, thirdHeap, secondThird, combinedInner,
+    secondHolds, thirdHolds⟩ := secondThirdHolds
+  have firstSecond : Heap.Disjoint firstHeap secondHeap :=
+    Heap.disjoint_of_subheap_right
+      (Heap.subheap_of_union_eq_left combinedInner) firstSecondThird
+  have firstThird : Heap.Disjoint firstHeap thirdHeap :=
+    Heap.disjoint_of_subheap_right
+      (Heap.subheap_of_union_eq_right secondThird combinedInner) firstSecondThird
+  refine ⟨Heap.union firstHeap secondHeap, thirdHeap,
+    Heap.disjoint_union_left firstThird secondThird, ?_, ?_, thirdHolds⟩
+  · rw [Heap.union_assoc, combinedInner, combinedOuter]
+  · exact ⟨firstHeap, secondHeap, firstSecond, rfl, firstHolds, secondHolds⟩
+
 theorem sep_intro_from {context leftContext rightContext left right : IProp Loc Val} :
     context ⊢ᵢ sep leftContext rightContext ->
     leftContext ⊢ᵢ left -> rightContext ⊢ᵢ right ->
@@ -206,6 +312,134 @@ theorem wand_elim (premise conclusion : IProp Loc Val) :
   obtain ⟨wandHeap, premiseHeap, disjoint, combined, wandHolds, premiseHolds⟩ := holds
   rw [← combined]
   exact wandHolds step (Nat.le_refl step) premiseHeap disjoint premiseHolds
+
+theorem wand_adjunction {context premise conclusion : IProp Loc Val} :
+    sep context premise ⊢ᵢ conclusion ↔ context ⊢ᵢ wand premise conclusion := by
+  constructor
+  · exact wand_intro
+  · intro rule
+    exact entails_trans (sep_mono rule (entails_refl premise)) (wand_elim premise conclusion)
+
+theorem exists_intro {Witness : Type w} (body : Witness -> IProp Loc Val) (witness : Witness) :
+    body witness ⊢ᵢ exists_ body := by
+  intro heap step holds
+  exact ⟨witness, holds⟩
+
+theorem exists_elim {Witness : Type w} {body : Witness -> IProp Loc Val}
+    {conclusion : IProp Loc Val} :
+    (forall witness, body witness ⊢ᵢ conclusion) -> exists_ body ⊢ᵢ conclusion := by
+  intro rules heap step holds
+  obtain ⟨witness, witnessHolds⟩ := holds
+  exact rules witness heap step witnessHolds
+
+theorem forall_intro {Witness : Type w} {premise : IProp Loc Val}
+    {body : Witness -> IProp Loc Val} :
+    (forall witness, premise ⊢ᵢ body witness) -> premise ⊢ᵢ forall_ body := by
+  intro rules heap step holds witness
+  exact rules witness heap step holds
+
+theorem forall_elim {Witness : Type w} (body : Witness -> IProp Loc Val) (witness : Witness) :
+    forall_ body ⊢ᵢ body witness := by
+  intro heap step holds
+  exact holds witness
+
+theorem always_mono {left right : IProp Loc Val} :
+    left ⊢ᵢ right -> always left ⊢ᵢ always right := by
+  intro rule heap step holds
+  exact rule Heap.empty step holds
+
+theorem always_elim (proposition : IProp Loc Val) : always proposition ⊢ᵢ proposition := by
+  intro heap step holds
+  exact proposition.monotone (Heap.empty_subheap heap) holds
+
+theorem always_intro_from_truth {proposition : IProp Loc Val} :
+    truth ⊢ᵢ proposition -> truth ⊢ᵢ always proposition := by
+  intro rule heap step holds
+  exact rule Heap.empty step True.intro
+
+theorem always_idem_intro (proposition : IProp Loc Val) :
+    always proposition ⊢ᵢ always (always proposition) := by
+  intro heap step holds
+  exact holds
+
+theorem always_idem_elim (proposition : IProp Loc Val) :
+    always (always proposition) ⊢ᵢ always proposition := by
+  intro heap step holds
+  exact holds
+
+theorem always_dup (proposition : IProp Loc Val) :
+    always proposition ⊢ᵢ sep (always proposition) (always proposition) := by
+  intro heap step holds
+  exact ⟨Heap.empty, heap, Heap.disjoint_empty_left heap, Heap.union_empty_left heap,
+    holds, holds⟩
+
+theorem later_mono {left right : IProp Loc Val} :
+    left ⊢ᵢ right -> later left ⊢ᵢ later right := by
+  intro rule heap step holds
+  cases step with
+  | zero => exact SProp.zero_mem_later (right.holds heap)
+  | succ previous =>
+      apply (SProp.succ_mem_later_iff (right.holds heap) previous).2
+      apply rule heap previous
+      exact (SProp.succ_mem_later_iff (left.holds heap) previous).1 holds
+
+theorem later_intro (proposition : IProp Loc Val) : proposition ⊢ᵢ later proposition := by
+  intro heap step holds
+  cases step with
+  | zero => exact SProp.zero_mem_later (proposition.holds heap)
+  | succ previous =>
+      apply (SProp.succ_mem_later_iff (proposition.holds heap) previous).2
+      exact proposition.holds heap |>.downward (Nat.le_succ previous) holds
+
+theorem later_and_intro (left right : IProp Loc Val) :
+    and (later left) (later right) ⊢ᵢ later (and left right) := by
+  intro heap step holds
+  cases step with
+  | zero => exact SProp.zero_mem_later ((and left right).holds heap)
+  | succ previous =>
+      apply (SProp.succ_mem_later_iff ((and left right).holds heap) previous).2
+      exact ⟨
+        (SProp.succ_mem_later_iff (left.holds heap) previous).1 holds.1,
+        (SProp.succ_mem_later_iff (right.holds heap) previous).1 holds.2⟩
+
+theorem later_and_elim (left right : IProp Loc Val) :
+    later (and left right) ⊢ᵢ and (later left) (later right) := by
+  intro heap step holds
+  cases step with
+  | zero => exact ⟨SProp.zero_mem_later _, SProp.zero_mem_later _⟩
+  | succ previous =>
+      have previousHolds :=
+        (SProp.succ_mem_later_iff ((and left right).holds heap) previous).1 holds
+      exact ⟨
+        (SProp.succ_mem_later_iff (left.holds heap) previous).2 previousHolds.1,
+        (SProp.succ_mem_later_iff (right.holds heap) previous).2 previousHolds.2⟩
+
+theorem later_sep_intro (left right : IProp Loc Val) :
+    sep (later left) (later right) ⊢ᵢ later (sep left right) := by
+  intro heap step holds
+  cases step with
+  | zero => exact SProp.zero_mem_later ((sep left right).holds heap)
+  | succ previous =>
+      obtain ⟨leftHeap, rightHeap, disjoint, combined, leftHolds, rightHolds⟩ := holds
+      apply (SProp.succ_mem_later_iff ((sep left right).holds heap) previous).2
+      exact ⟨leftHeap, rightHeap, disjoint, combined,
+        (SProp.succ_mem_later_iff (left.holds leftHeap) previous).1 leftHolds,
+        (SProp.succ_mem_later_iff (right.holds rightHeap) previous).1 rightHolds⟩
+
+theorem later_sep_elim (left right : IProp Loc Val) :
+    later (sep left right) ⊢ᵢ sep (later left) (later right) := by
+  intro heap step holds
+  cases step with
+  | zero =>
+      exact ⟨Heap.empty, heap, Heap.disjoint_empty_left heap, Heap.union_empty_left heap,
+        SProp.zero_mem_later _, SProp.zero_mem_later _⟩
+  | succ previous =>
+      have previousHolds :=
+        (SProp.succ_mem_later_iff ((sep left right).holds heap) previous).1 holds
+      obtain ⟨leftHeap, rightHeap, disjoint, combined, leftHolds, rightHolds⟩ := previousHolds
+      exact ⟨leftHeap, rightHeap, disjoint, combined,
+        (SProp.succ_mem_later_iff (left.holds leftHeap) previous).2 leftHolds,
+        (SProp.succ_mem_later_iff (right.holds rightHeap) previous).2 rightHolds⟩
 
 theorem pointsTo_exclusive [DecidableEq Loc] (location : Loc) (leftValue rightValue : Val) :
     sep (pointsTo location leftValue) (pointsTo location rightValue) ⊢ᵢ falsum := by
