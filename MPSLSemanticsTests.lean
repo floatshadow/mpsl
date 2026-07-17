@@ -6,6 +6,23 @@ namespace MPSL.SemanticsTests
 
 open scoped MPSL
 
+example (ty : Ty) (left right : Ty.denote Nat String ty)
+    (equivalent : forall step, Ty.EquivAt Nat String ty step left right) :
+    left = right :=
+  Ty.eq_of_equivAt Nat String ty equivalent
+
+example {ctx : List Ty} {ty : Ty} (expression : Expr Nat String ctx ty) :
+    OFE.NonExpansive (Expr.denote expression) :=
+  Expr.denote_nonexpansive expression
+
+example (function : Ty.denote Nat String (.arr .iprop .iprop)) :
+    OFE.NonExpansive function.toFun :=
+  function.nonexpansive
+
+example (proposition : IProp Nat String) :
+    OFE.NonExpansive proposition.holds :=
+  proposition.holds_nonexpansive
+
 example (P Q : Formula Nat String) :
     mpsl{ embed[iProp](P) ∧ embed[iProp](Q) } ⊢ P := by
   mstart h

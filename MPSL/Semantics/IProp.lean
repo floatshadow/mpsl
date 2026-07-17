@@ -24,6 +24,13 @@ scoped infix:25 " ⊢ᵢ " => Entails
 
 def Equiv (left right : IProp Loc Val) : Prop := Entails left right ∧ Entails right left
 
+theorem holds_nonexpansive (proposition : IProp Loc Val) :
+    OFE.NonExpansive proposition.holds := by
+  intro step left right equivalent
+  change left = right at equivalent
+  subst right
+  exact OFE.refl step (proposition.holds left)
+
 theorem entails_refl (proposition : IProp Loc Val) : proposition ⊢ᵢ proposition := by
   intro heap step holds
   exact holds

@@ -145,6 +145,122 @@ def forall_ {Witness : Type w} (body : Witness -> IProp Loc Val) : IProp Loc Val
     intro smaller larger included step holds witness
     exact (body witness).monotone included (holds witness)
 
+theorem and_nonexpansive : OFE.NonExpansive₂ (@and Loc Val) := by
+  intro step left left' right right' leftEq rightEq heap observed included
+  exact and_congr (leftEq heap observed included) (rightEq heap observed included)
+
+theorem or_nonexpansive : OFE.NonExpansive₂ (@or Loc Val) := by
+  intro step left left' right right' leftEq rightEq heap observed included
+  exact or_congr (leftEq heap observed included) (rightEq heap observed included)
+
+theorem imp_nonexpansive : OFE.NonExpansive₂ (@imp Loc Val) := by
+  intro step left left' right right' leftEq rightEq heap observed observedIncluded
+  constructor
+  · intro holds smaller smallerIncluded larger heapIncluded leftHolds
+    have withinStep : smaller <= step :=
+      Nat.le_trans smallerIncluded observedIncluded
+    apply (rightEq larger smaller withinStep).mp
+    apply holds smaller smallerIncluded larger heapIncluded
+    exact (leftEq larger smaller withinStep).mpr leftHolds
+  · intro holds smaller smallerIncluded larger heapIncluded leftHolds
+    have withinStep : smaller <= step :=
+      Nat.le_trans smallerIncluded observedIncluded
+    apply (rightEq larger smaller withinStep).mpr
+    apply holds smaller smallerIncluded larger heapIncluded
+    exact (leftEq larger smaller withinStep).mp leftHolds
+
+theorem sep_nonexpansive : OFE.NonExpansive₂ (@sep Loc Val) := by
+  intro step left left' right right' leftEq rightEq heap observed included
+  constructor
+  · rintro ⟨leftHeap, rightHeap, disjoint, combined, leftHolds, rightHolds⟩
+    exact ⟨leftHeap, rightHeap, disjoint, combined,
+      (leftEq leftHeap observed included).mp leftHolds,
+      (rightEq rightHeap observed included).mp rightHolds⟩
+  · rintro ⟨leftHeap, rightHeap, disjoint, combined, leftHolds, rightHolds⟩
+    exact ⟨leftHeap, rightHeap, disjoint, combined,
+      (leftEq leftHeap observed included).mpr leftHolds,
+      (rightEq rightHeap observed included).mpr rightHolds⟩
+
+theorem wand_nonexpansive : OFE.NonExpansive₂ (@wand Loc Val) := by
+  intro step left left' right right' leftEq rightEq heap observed observedIncluded
+  constructor
+  · intro holds smaller smallerIncluded extra disjoint leftHolds
+    have withinStep : smaller <= step :=
+      Nat.le_trans smallerIncluded observedIncluded
+    apply (rightEq (Heap.union heap extra) smaller withinStep).mp
+    apply holds smaller smallerIncluded extra disjoint
+    exact (leftEq extra smaller withinStep).mpr leftHolds
+  · intro holds smaller smallerIncluded extra disjoint leftHolds
+    have withinStep : smaller <= step :=
+      Nat.le_trans smallerIncluded observedIncluded
+    apply (rightEq (Heap.union heap extra) smaller withinStep).mpr
+    apply holds smaller smallerIncluded extra disjoint
+    exact (leftEq extra smaller withinStep).mp leftHolds
+
+theorem always_nonexpansive : OFE.NonExpansive (@always Loc Val) := by
+  intro step left right equivalent heap observed included
+  exact equivalent Heap.empty observed included
+
+theorem later_nonexpansive : OFE.NonExpansive (@later Loc Val) := by
+  intro step left right equivalent heap observed included
+  cases observed with
+  | zero =>
+      exact iff_of_true (SProp.zero_mem_later _) (SProp.zero_mem_later _)
+  | succ previous =>
+      have previousIncluded : previous <= step := by omega
+      exact (SProp.succ_mem_later_iff (left.holds heap) previous).trans
+        ((equivalent heap previous previousIncluded).trans
+          (SProp.succ_mem_later_iff (right.holds heap) previous).symm)
+
+theorem exists_nonexpansive {Witness : Type w}
+    {step : Nat}
+    {left right : Witness -> IProp Loc Val}
+    (equivalent : forall witness, IProp.EquivAt step (left witness) (right witness)) :
+    IProp.EquivAt step (exists_ left) (exists_ right) := by
+  intro heap observed included
+  constructor
+  · rintro ⟨witness, holds⟩
+    exact ⟨witness, (equivalent witness heap observed included).mp holds⟩
+  · rintro ⟨witness, holds⟩
+    exact ⟨witness, (equivalent witness heap observed included).mpr holds⟩
+
+theorem forall_nonexpansive {Witness : Type w}
+    {step : Nat}
+    {left right : Witness -> IProp Loc Val}
+    (equivalent : forall witness, IProp.EquivAt step (left witness) (right witness)) :
+    IProp.EquivAt step (forall_ left) (forall_ right) := by
+  intro heap observed included
+  constructor
+  · intro holds witness
+    exact (equivalent witness heap observed included).mp (holds witness)
+  · intro holds witness
+    exact (equivalent witness heap observed included).mpr (holds witness)
+
+theorem equal_nonexpansive {Carrier : Type w} [OFE Carrier]
+    {step : Nat}
+    {left left' right right' : Carrier}
+    (leftEq : OFE.equivAt step left left') (rightEq : OFE.equivAt step right right') :
+    IProp.EquivAt step
+      (@equal Loc Val Carrier OFE.equivAt (@OFE.mono Carrier _) left right)
+      (@equal Loc Val Carrier OFE.equivAt (@OFE.mono Carrier _) left' right') := by
+  intro heap observed included
+  have leftEq' := OFE.mono included leftEq
+  have rightEq' := OFE.mono included rightEq
+  constructor
+  · intro equivalent
+    exact OFE.trans (OFE.symm leftEq') (OFE.trans equivalent rightEq')
+  · intro equivalent
+    exact OFE.trans leftEq' (OFE.trans equivalent (OFE.symm rightEq'))
+
+theorem pointsTo_nonexpansive [DecidableEq Loc] :
+    OFE.NonExpansive₂
+      (fun (location : ULift.{max u v, u} Loc) (value : ULift.{max u v, v} Val) =>
+        pointsTo location.down value.down) := by
+  intro step left left' right right' leftEq rightEq
+  cases leftEq
+  cases rightEq
+  exact OFE.refl step _
+
 theorem truth_intro (proposition : IProp Loc Val) : proposition ⊢ᵢ truth := by
   intro heap step holds
   trivial
