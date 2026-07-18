@@ -1,12 +1,15 @@
 name = "mpsl"
 version = "0.1.0"
-defaultTargets = ["MPSL", "MPSLTests", "MPSLSemanticsTests"]
+defaultTargets = ["MPSL", "MPSLElabTests", "MPSLSemanticsTests"]
 
 [[lean_lib]]
 name = "MPSL"
 
 [[lean_lib]]
-name = "MPSLTests"
+name = "MPSLTest"
+
+[[lean_lib]]
+name = "MPSLElabTests"
 
 [[lean_lib]]
 name = "MPSLSemanticsTests"

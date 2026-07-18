@@ -1,60 +1,62 @@
 import MPSL
+import MPSLTest.Model
 
 set_option autoImplicit false
 
 namespace MPSL.SemanticsTests
 
 open scoped MPSL
+open MPSL.TestModel
 
-example (ty : Ty) (left right : Ty.denote Nat String ty)
-    (equivalent : forall step, Ty.EquivAt Nat String ty step left right) :
+example (ty : Ty) (left right : Ty.denote Location Value ty)
+    (equivalent : forall step, Ty.EquivAt Location Value ty step left right) :
     left = right :=
-  Ty.eq_of_equivAt Nat String ty equivalent
+  Ty.eq_of_equivAt Location Value ty equivalent
 
-example {ctx : List Ty} {ty : Ty} (expression : Expr Nat String ctx ty) :
+example {ctx : List Ty} {ty : Ty} (expression : Expr Location Value ctx ty) :
     OFE.NonExpansive (Expr.denote expression) :=
   Expr.denote_nonexpansive expression
 
-example (function : Ty.denote Nat String (.arr .iprop .iprop)) :
+example (function : Ty.denote Location Value (.arr .iprop .iprop)) :
     OFE.NonExpansive function.toFun :=
   function.nonexpansive
 
-example (proposition : IProp Nat String) :
+example (proposition : IProp Location Value) :
     OFE.NonExpansive proposition.holds :=
   proposition.holds_nonexpansive
 
-example (P Q : Formula Nat String) :
+example (P Q : Formula Location Value) :
     mpsl{ `P ∧ `Q } ⊢ P := by
   mstart h
   mdestruct h as hP hQ
   mexact hP
 
-example (P Q : Formula Nat String) :
+example (P Q : Formula Location Value) :
     P ⊢ mpsl{ `P ∨ `Q } := by
   mstart hP
   mleft
   mexact hP
 
-example (P : Formula Nat String) :
+example (P : Formula Location Value) :
     mpsl{ `P ∨ `P } ⊢ P := by
   mstart h
   mdestruct h as hP hP'
   · mexact hP
   · mexact hP'
 
-example (P Q : Formula Nat String) :
+example (P Q : Formula Location Value) :
     P ⊢ mpsl{ `Q ⇒ `P } := by
   mstart hP
   mintro hQ
   mexact hP
 
-example (P Q : Formula Nat String) :
+example (P Q : Formula Location Value) :
     mpsl{ (`P ⇒ `Q) ∧ `P } ⊢ Q := by
   mstart h
   mdestruct h as himp hP
   mapply
 
-example (P Q : Formula Nat String) :
+example (P Q : Formula Location Value) :
     mpsl{ `P ∗ `Q } ⊢
     mpsl{ `Q ∗ `P } := by
   mstart h
@@ -63,7 +65,7 @@ example (P Q : Formula Nat String) :
   · mexact hQ
   · mexact hP
 
-example (P Q : Formula Nat String) :
+example (P Q : Formula Location Value) :
     P ⊢ mpsl{ `Q -∗
       (`P ∗ `Q) } := by
   mstart hP
@@ -72,20 +74,20 @@ example (P Q : Formula Nat String) :
   · mexact hP
   · mexact hQ
 
-example (P Q : Formula Nat String) :
+example (P Q : Formula Location Value) :
     mpsl{ (`P -∗ `Q) ∗ `P } ⊢ Q := by
   mstart h
   mdestruct h as hwand hP
   mapply
 
-example (P Q R : Formula Nat String) :
+example (P Q R : Formula Location Value) :
     mpsl{ (`P ∗ `Q) ∗ `R } ⊢
     mpsl{ `P ∗ `Q } := by
   mstart h
   mdestruct h as hPQ hR
   mexact hPQ
 
-example (P Q R : Formula Nat String) :
+example (P Q R : Formula Location Value) :
     mpsl{ (`P ∗ `Q) ∗ `R } ⊢
     mpsl{ (`P ∗ `Q) ∗ True } := by
   mstart h
@@ -93,14 +95,14 @@ example (P Q R : Formula Nat String) :
   mframe hPQ
   mtruth
 
-example (P Q R : Formula Nat String) :
+example (P Q R : Formula Location Value) :
     mpsl{ (`P ∗ `Q) ∗ `R } ⊢ P := by
   mstart h
   mdestruct h as hPQ hR
   mdestruct hPQ as hP hQ
   mexact hP
 
-example (P Q R : Formula Nat String) :
+example (P Q R : Formula Location Value) :
     mpsl{ `P ∗ `Q ∗ `R } ⊢
     mpsl{ (`P ∗ `Q) ∗ True } := by
   mstart h
@@ -109,7 +111,7 @@ example (P Q R : Formula Nat String) :
   mframe [hP, hQ]
   mtruth
 
-example (P Q R : Formula Nat String) :
+example (P Q R : Formula Location Value) :
     mpsl{ `P ∗ `Q ∗ `R } ⊢
     mpsl{ (`Q ∗ `R) ∗ True } := by
   mstart h
@@ -118,7 +120,7 @@ example (P Q R : Formula Nat String) :
   mframe [hQ, hR]
   mtruth
 
-example (P Q R : Formula Nat String) :
+example (P Q R : Formula Location Value) :
     mpsl{ `P ∗ `Q ∗ `R } ⊢
     mpsl{ (`P ∗ `R) ∗ True } := by
   mstart h
@@ -127,7 +129,7 @@ example (P Q R : Formula Nat String) :
   mframe [hP, hR]
   mtruth
 
-example (P Q R : Formula Nat String) :
+example (P Q R : Formula Location Value) :
     mpsl{ `P ∗ `Q ∗ `R } ⊢
     mpsl{ (`R ∗ `P ∗ `Q) ∗ True } := by
   mstart h
@@ -137,31 +139,31 @@ example (P Q R : Formula Nat String) :
   mtruth
 
 example :
-    (mpsl{ True } : Formula Nat String) ⊢ mpsl{ ∃ x : loc, x =[loc] loc(0) } := by
+    (mpsl{ True } : Formula Location Value) ⊢ mpsl{ ∃ x : loc, x =[loc] loc(0) } := by
   mstart h
   mexists loc(0)
   mrefl
 
 example :
-    (mpsl{ True } : Formula Nat String) ⊢ mpsl{ ∀ x : loc, x =[loc] x } := by
+    (mpsl{ True } : Formula Location Value) ⊢ mpsl{ ∀ x : loc, x =[loc] x } := by
   mstart h
   mforall x
   mrefl
 
 example :
-    (mpsl{ ∀ x : loc, x =[loc] x } : Formula Nat String) ⊢
+    (mpsl{ ∀ x : loc, x =[loc] x } : Formula Location Value) ⊢
     mpsl{ loc(0) =[loc] loc(0) } := by
   mstart h
   mspecialize h at loc(0) as hzero
   mexact hzero
 
 example :
-    (mpsl{ ∃ x : loc, x =[loc] x } : Formula Nat String) ⊢ mpsl{ True } := by
+    (mpsl{ ∃ x : loc, x =[loc] x } : Formula Location Value) ⊢ mpsl{ True } := by
   mstart h
   mopenexists h as x hx
   mtruth
 
-example (P : Formula Nat String) :
+example (P : Formula Location Value) :
     mpsl{ □ `P } ⊢ mpsl{ `P ∗ `P } := by
   mstart h
   mdup h as h1 h2
@@ -172,31 +174,31 @@ example (P : Formula Nat String) :
   · mexact hP2
 
 example :
-    (mpsl{ True } : Formula Nat String) ⊢ mpsl{ □ True } := by
+    (mpsl{ True } : Formula Location Value) ⊢ mpsl{ □ True } := by
   mstart h
   mclear h
   malways
   mtruth
 
-example (P : Formula Nat String) : P ⊢ mpsl{ ▷ `P } := by
+example (P : Formula Location Value) : P ⊢ mpsl{ ▷ `P } := by
   mstart hP
   mlater
   mexact hP
 
-example (P : Formula Nat String) :
+example (P : Formula Location Value) :
   mpsl{ ▷ `P } ⊢ mpsl{ ▷ `P } := by
   mstart h
   mopenlater h as hP
   mexact hP
 
-example (P : Formula Nat String) :
+example (P : Formula Location Value) :
     mpsl{ False ∧ `P } ⊢ P := by
   mstart h
   mdestruct h as hfalse hP
   mfalse hfalse
 
 example :
-    (mpsl{ True } : Formula Nat String) ⊢
+    (mpsl{ True } : Formula Location Value) ⊢
     mpsl{ (λ x : iProp, x)(True) } := by
   mstart h
   mnormalize
@@ -205,7 +207,7 @@ example :
 example : Unit := by
   fail_if_success
     have invalidFrame :
-        (mpsl{ True ∧ False } : Formula Nat String) ⊢
+        (mpsl{ True ∧ False } : Formula Location Value) ⊢
         mpsl{ True ∗ True } := by
       mstart h
       mdestruct h as hP hQ
@@ -215,27 +217,27 @@ example : Unit := by
 example : Unit := by
   fail_if_success
     have invalidAlways :
-        (mpsl{ loc(0) ↦ val("value") } : Formula Nat String) ⊢
-        mpsl{ □ (loc(0) ↦ val("value")) } := by
+        (mpsl{ loc(0) ↦ val(Value.string "value") } : Formula Location Value) ⊢
+        mpsl{ □ (loc(0) ↦ val(Value.string "value")) } := by
       mstart hP
       malways
   exact Unit.unit
 
 example :
-    mpsl{ (loc(0) ↦ val("left")) ∗ (loc(0) ↦ val("right")) } ⊢
-    (mpsl{ False } : Formula Nat String) := by
-  exact IProp.pointsTo_exclusive 0 "left" "right"
+    mpsl{ (loc(0) ↦ val(Value.string "left")) ∗ (loc(0) ↦ val(Value.string "right")) } ⊢
+    (mpsl{ False } : Formula Location Value) := by
+  exact IProp.pointsTo_exclusive 0 (Value.string "left") (Value.string "right")
 
 example : Unit := by
   fail_if_success
     have invalid :
-        (mpsl{ loc(0) ↦ val("value") } : Formula Nat String) ⊢
-        mpsl{ (loc(0) ↦ val("value")) ∗ (loc(0) ↦ val("value")) } := by
+        (mpsl{ loc(0) ↦ val(Value.string "value") } : Formula Location Value) ⊢
+        mpsl{ (loc(0) ↦ val(Value.string "value")) ∗ (loc(0) ↦ val(Value.string "value")) } := by
       mstart h
       msep
   exact Unit.unit
 
-example (_P : Formula Nat String) : Unit := by
+example (_P : Formula Location Value) : Unit := by
   fail_if_success
     have invalidName : _P ⊢ _P := by
       mstart hP
