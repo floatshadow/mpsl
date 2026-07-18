@@ -24,39 +24,39 @@ example (proposition : IProp Nat String) :
   proposition.holds_nonexpansive
 
 example (P Q : Formula Nat String) :
-    mpsl{ embed[iProp](P) ∧ embed[iProp](Q) } ⊢ P := by
+    mpsl{ `P ∧ `Q } ⊢ P := by
   mstart h
   mdestruct h as hP hQ
   mexact hP
 
 example (P Q : Formula Nat String) :
-    P ⊢ mpsl{ embed[iProp](P) ∨ embed[iProp](Q) } := by
+    P ⊢ mpsl{ `P ∨ `Q } := by
   mstart hP
   mleft
   mexact hP
 
 example (P : Formula Nat String) :
-    mpsl{ embed[iProp](P) ∨ embed[iProp](P) } ⊢ P := by
+    mpsl{ `P ∨ `P } ⊢ P := by
   mstart h
   mdestruct h as hP hP'
   · mexact hP
   · mexact hP'
 
 example (P Q : Formula Nat String) :
-    P ⊢ mpsl{ embed[iProp](Q) ⇒ embed[iProp](P) } := by
+    P ⊢ mpsl{ `Q ⇒ `P } := by
   mstart hP
   mintro hQ
   mexact hP
 
 example (P Q : Formula Nat String) :
-    mpsl{ (embed[iProp](P) ⇒ embed[iProp](Q)) ∧ embed[iProp](P) } ⊢ Q := by
+    mpsl{ (`P ⇒ `Q) ∧ `P } ⊢ Q := by
   mstart h
   mdestruct h as himp hP
   mapply
 
 example (P Q : Formula Nat String) :
-    mpsl{ embed[iProp](P) ∗ embed[iProp](Q) } ⊢
-    mpsl{ embed[iProp](Q) ∗ embed[iProp](P) } := by
+    mpsl{ `P ∗ `Q } ⊢
+    mpsl{ `Q ∗ `P } := by
   mstart h
   mdestruct h as hP hQ
   msep (swap)
@@ -64,8 +64,8 @@ example (P Q : Formula Nat String) :
   · mexact hP
 
 example (P Q : Formula Nat String) :
-    P ⊢ mpsl{ embed[iProp](Q) -∗
-      (embed[iProp](P) ∗ embed[iProp](Q)) } := by
+    P ⊢ mpsl{ `Q -∗
+      (`P ∗ `Q) } := by
   mstart hP
   mintro hQ
   msep
@@ -73,36 +73,36 @@ example (P Q : Formula Nat String) :
   · mexact hQ
 
 example (P Q : Formula Nat String) :
-    mpsl{ (embed[iProp](P) -∗ embed[iProp](Q)) ∗ embed[iProp](P) } ⊢ Q := by
+    mpsl{ (`P -∗ `Q) ∗ `P } ⊢ Q := by
   mstart h
   mdestruct h as hwand hP
   mapply
 
 example (P Q R : Formula Nat String) :
-    mpsl{ (embed[iProp](P) ∗ embed[iProp](Q)) ∗ embed[iProp](R) } ⊢
-    mpsl{ embed[iProp](P) ∗ embed[iProp](Q) } := by
+    mpsl{ (`P ∗ `Q) ∗ `R } ⊢
+    mpsl{ `P ∗ `Q } := by
   mstart h
   mdestruct h as hPQ hR
   mexact hPQ
 
 example (P Q R : Formula Nat String) :
-    mpsl{ (embed[iProp](P) ∗ embed[iProp](Q)) ∗ embed[iProp](R) } ⊢
-    mpsl{ (embed[iProp](P) ∗ embed[iProp](Q)) ∗ True } := by
+    mpsl{ (`P ∗ `Q) ∗ `R } ⊢
+    mpsl{ (`P ∗ `Q) ∗ True } := by
   mstart h
   mdestruct h as hPQ hR
   mframe hPQ
   mtruth
 
 example (P Q R : Formula Nat String) :
-    mpsl{ (embed[iProp](P) ∗ embed[iProp](Q)) ∗ embed[iProp](R) } ⊢ P := by
+    mpsl{ (`P ∗ `Q) ∗ `R } ⊢ P := by
   mstart h
   mdestruct h as hPQ hR
   mdestruct hPQ as hP hQ
   mexact hP
 
 example (P Q R : Formula Nat String) :
-    mpsl{ embed[iProp](P) ∗ embed[iProp](Q) ∗ embed[iProp](R) } ⊢
-    mpsl{ (embed[iProp](P) ∗ embed[iProp](Q)) ∗ True } := by
+    mpsl{ `P ∗ `Q ∗ `R } ⊢
+    mpsl{ (`P ∗ `Q) ∗ True } := by
   mstart h
   mdestruct h as hP hQR
   mdestruct hQR as hQ hR
@@ -110,8 +110,8 @@ example (P Q R : Formula Nat String) :
   mtruth
 
 example (P Q R : Formula Nat String) :
-    mpsl{ embed[iProp](P) ∗ embed[iProp](Q) ∗ embed[iProp](R) } ⊢
-    mpsl{ (embed[iProp](Q) ∗ embed[iProp](R)) ∗ True } := by
+    mpsl{ `P ∗ `Q ∗ `R } ⊢
+    mpsl{ (`Q ∗ `R) ∗ True } := by
   mstart h
   mdestruct h as hP hQR
   mdestruct hQR as hQ hR
@@ -119,8 +119,8 @@ example (P Q R : Formula Nat String) :
   mtruth
 
 example (P Q R : Formula Nat String) :
-    mpsl{ embed[iProp](P) ∗ embed[iProp](Q) ∗ embed[iProp](R) } ⊢
-    mpsl{ (embed[iProp](P) ∗ embed[iProp](R)) ∗ True } := by
+    mpsl{ `P ∗ `Q ∗ `R } ⊢
+    mpsl{ (`P ∗ `R) ∗ True } := by
   mstart h
   mdestruct h as hP hQR
   mdestruct hQR as hQ hR
@@ -128,8 +128,8 @@ example (P Q R : Formula Nat String) :
   mtruth
 
 example (P Q R : Formula Nat String) :
-    mpsl{ embed[iProp](P) ∗ embed[iProp](Q) ∗ embed[iProp](R) } ⊢
-    mpsl{ (embed[iProp](R) ∗ embed[iProp](P) ∗ embed[iProp](Q)) ∗ True } := by
+    mpsl{ `P ∗ `Q ∗ `R } ⊢
+    mpsl{ (`R ∗ `P ∗ `Q) ∗ True } := by
   mstart h
   mdestruct h as hP hQR
   mdestruct hQR as hQ hR
@@ -162,7 +162,7 @@ example :
   mtruth
 
 example (P : Formula Nat String) :
-    mpsl{ □ embed[iProp](P) } ⊢ mpsl{ embed[iProp](P) ∗ embed[iProp](P) } := by
+    mpsl{ □ `P } ⊢ mpsl{ `P ∗ `P } := by
   mstart h
   mdup h as h1 h2
   mopen h1 as hP1
@@ -178,19 +178,19 @@ example :
   malways
   mtruth
 
-example (P : Formula Nat String) : P ⊢ mpsl{ ▷ embed[iProp](P) } := by
+example (P : Formula Nat String) : P ⊢ mpsl{ ▷ `P } := by
   mstart hP
   mlater
   mexact hP
 
 example (P : Formula Nat String) :
-  mpsl{ ▷ embed[iProp](P) } ⊢ mpsl{ ▷ embed[iProp](P) } := by
+  mpsl{ ▷ `P } ⊢ mpsl{ ▷ `P } := by
   mstart h
   mopenlater h as hP
   mexact hP
 
 example (P : Formula Nat String) :
-    mpsl{ False ∧ embed[iProp](P) } ⊢ P := by
+    mpsl{ False ∧ `P } ⊢ P := by
   mstart h
   mdestruct h as hfalse hP
   mfalse hfalse

@@ -17,9 +17,12 @@ syntax:60 mpslTy:61 " -> " mpslTy:60 : mpslTy
 syntax:60 mpslTy:61 " → " mpslTy:60 : mpslTy
 
 declare_syntax_cat mpslTerm
+private def mpslBacktick : Lean.Parser.Parser := Lean.Parser.rawCh '`'
+
 syntax:max ident : mpslTerm
 syntax:max "loc(" term ")" : mpslTerm
 syntax:max "val(" term ")" : mpslTerm
+syntax:max mpslBacktick term:max : mpslTerm
 syntax:max "embed[" mpslTy "](" term ")" : mpslTerm
 syntax:max "()" : mpslTerm
 syntax:max "False" : mpslTerm
@@ -165,6 +168,8 @@ private partial def compileExpr (ctx : Context) : Syntax -> TermElabM CompiledEx
       return ⟨.loc, ← `(MPSL.Expr.loc $value)⟩
   | `(mpslTerm| val($value:term)) =>
       return ⟨.val, ← `(MPSL.Expr.val $value)⟩
+  | `(mpslTerm| `$value:term) =>
+      return ⟨.iprop, ← `(MPSL.Expr.embed (ty := MPSL.Ty.iprop) $value)⟩
   | `(mpslTerm| embed[$ty:mpslTy]($value:term)) => do
       let ty ← compileTy ty
       return ⟨ty.value, ← `(MPSL.Expr.embed (ty := $(ty.term)) $value)⟩

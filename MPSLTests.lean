@@ -93,7 +93,7 @@ example (location : Nat) (value : String) : Formula Nat String :=
   mpsl{ loc(location) |-> val(value) }
 
 example : Formula Nat String :=
-  mpsl{ embed[iProp](assertionConstant) -> embed[iProp](assertionConstant) }
+  mpsl{ `assertionConstant -> `assertionConstant }
 
 example : Formula Nat String :=
   mpsl{ forall P : iProp, forall Q : iProp, P -> Q -> P }
