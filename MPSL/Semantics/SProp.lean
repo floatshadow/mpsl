@@ -18,13 +18,12 @@ instance : Membership Nat SProp where
 @[ext]
 theorem ext {left right : SProp}
     (equivalent : forall step, step ∈ left ↔ step ∈ right) : left = right := by
-  cases left with
-  | mk leftSteps leftDownward =>
-      cases right with
-      | mk rightSteps rightDownward =>
-          have : leftSteps = rightSteps := funext fun step => propext (equivalent step)
-          subst rightSteps
-          rfl
+  rcases left with ⟨leftSteps, leftDownward⟩
+  rcases right with ⟨rightSteps, rightDownward⟩
+  have : leftSteps = rightSteps :=
+    funext fun step => propext (equivalent step)
+  subst rightSteps
+  rfl -- the equality over downward is due to proof-irrelevance
 
 def bottom : SProp where
   steps := fun _ => False

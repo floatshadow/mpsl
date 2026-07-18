@@ -80,15 +80,13 @@ instance [OFE A] [OFE B] : OFE (NEFun A B) where
     exact OFE.mono included (equivalent value)
   eq_of_equivAt := by
     intro left right equivalent
-    cases left with
-    | mk leftFunction leftNE =>
-        cases right with
-        | mk rightFunction rightNE =>
-            have functionsEqual : leftFunction = rightFunction := by
-              funext value
-              exact OFE.eq_of_equivAt fun step => equivalent step value
-            subst rightFunction
-            rfl
+    rcases left with ⟨leftFunction, leftNE⟩
+    rcases right with ⟨rightFunction, rightNE⟩
+    have functionsEqual : leftFunction = rightFunction := by
+      funext value
+      exact OFE.eq_of_equivAt fun step => equivalent step value
+    subst rightFunction
+    rfl
 
 def id [OFE A] : NEFun A A where
   toFun := fun value => value
@@ -135,17 +133,15 @@ instance prodOFE [OFE A] [OFE B] : OFE (A × B) where
     exact ⟨OFE.mono included equivalent.1, OFE.mono included equivalent.2⟩
   eq_of_equivAt := by
     intro left right equivalent
-    cases left with
-    | mk leftFirst leftSecond =>
-        cases right with
-        | mk rightFirst rightSecond =>
-            have firstEqual : leftFirst = rightFirst :=
-              OFE.eq_of_equivAt fun step => (equivalent step).1
-            have secondEqual : leftSecond = rightSecond :=
-              OFE.eq_of_equivAt fun step => (equivalent step).2
-            subst rightFirst
-            subst rightSecond
-            rfl
+    rcases left with ⟨leftFirst, leftSecond⟩
+    rcases right with ⟨rightFirst, rightSecond⟩
+    have firstEqual : leftFirst = rightFirst :=
+      OFE.eq_of_equivAt fun step => (equivalent step).1
+    have secondEqual : leftSecond = rightSecond :=
+      OFE.eq_of_equivAt fun step => (equivalent step).2
+    subst rightFirst
+    subst rightSecond
+    rfl
 
 private def sumEquivAt [OFE A] [OFE B] (step : Nat) : Sum A B -> Sum A B -> Prop
   | .inl left, .inl right => OFE.equivAt step left right

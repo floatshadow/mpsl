@@ -27,7 +27,7 @@ def Equiv (left right : IProp Loc Val) : Prop := Entails left right ∧ Entails 
 theorem holds_nonexpansive (proposition : IProp Loc Val) :
     OFE.NonExpansive proposition.holds := by
   intro step left right equivalent
-  change left = right at equivalent
+  change left = right at equivalent -- because Heap is a **discrete** OFE
   subst right
   exact OFE.refl step (proposition.holds left)
 
@@ -40,6 +40,7 @@ theorem entails_trans {first second third : IProp Loc Val} :
   intro firstSecond secondThird heap step holds
   exact secondThird heap step (firstSecond heap step holds)
 
+-- heap-wise OFE, forall heap
 def EquivAt (step : Nat) (left right : IProp Loc Val) : Prop :=
   forall heap, SProp.EquivAt step (left.holds heap) (right.holds heap)
 
@@ -62,17 +63,15 @@ instance : OFE (IProp Loc Val) where
   mono := equivAt_mono
   eq_of_equivAt := by
     intro left right equivalent
-    cases left with
-    | mk leftHolds leftMonotone =>
-        cases right with
-        | mk rightHolds rightMonotone =>
-            have holdsEqual : leftHolds = rightHolds := by
-              funext heap
-              apply SProp.ext
-              intro step
-              exact equivalent step heap step (Nat.le_refl step)
-            subst rightHolds
-            rfl
+    rcases left with ⟨leftHolds, leftMonotone⟩
+    rcases right with ⟨rightHolds, rightMonotone⟩
+    have holdsEqual : leftHolds = rightHolds := by
+      funext heap
+      apply SProp.ext
+      intro step
+      exact equivalent step heap step (Nat.le_refl step)
+    subst rightHolds
+    rfl
 
 end IProp
 

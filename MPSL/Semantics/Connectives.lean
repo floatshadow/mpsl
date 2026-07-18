@@ -110,6 +110,7 @@ def later (proposition : IProp Loc Val) : IProp Loc Val where
         obtain ⟨previous, stepValue, previousHolds⟩ := observed
         exact Or.inr ⟨previous, stepValue, proposition.monotone included previousHolds⟩
 
+-- OFE Carrier **without** equivAt_refl/symm/trans **nor** eq_of_equivAt
 def equal {Carrier : Type w} (equivAt : Nat -> Carrier -> Carrier -> Prop)
     (equivAtMono : forall {smaller larger left right},
       smaller <= larger -> equivAt larger left right -> equivAt smaller left right)
