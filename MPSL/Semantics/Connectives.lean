@@ -262,6 +262,118 @@ theorem pointsTo_nonexpansive [DecidableEq Loc] :
   cases rightEq
   exact OFE.refl step _
 
+/-!
+## Certified affine BI laws
+
+The theorems below are the semantic interface used by the proof mode. In the
+formulas, `⊢ᵢ` is semantic entailment and `⊣⊢` abbreviates entailment in both
+directions.
+
+### Equality
+
+Equality is step-indexed. Leibniz substitution therefore requires `P` to be
+non-expansive.
+
+```text
+True ⊢ᵢ x = x              x = y ⊢ᵢ y = x
+
+(x = y) ∧ (y = z) ⊢ᵢ x = z
+(x = y) ∧ P x ⊢ᵢ P y                         (P non-expansive)
+```
+
+### Additive BI
+
+```text
+P ⊢ᵢ True                 False ⊢ᵢ P
+
+R ⊢ᵢ P    R ⊢ᵢ Q         P ⊢ᵢ P ∨ Q         Q ⊢ᵢ P ∨ Q
+─────────────────         ───────────         ───────────
+    R ⊢ᵢ P ∧ Q
+
+R ∧ P ⊢ᵢ Q               R ⊢ᵢ P ⇒ Q
+──────────────            ──────────────
+R ⊢ᵢ P ⇒ Q               R ∧ P ⊢ᵢ Q
+
+P' ⊢ᵢ P    Q ⊢ᵢ Q'
+───────────────────
+(P ⇒ Q) ⊢ᵢ (P' ⇒ Q')
+```
+
+### Multiplicative BI
+
+`True` is also the separating unit. Resource discard is valid, so this is the
+affine specialization of BI rather than general resource-sensitive BI.
+
+```text
+P ⊢ᵢ P'    Q ⊢ᵢ Q'       P ∗ Q ⊢ᵢ P         P ∗ Q ⊢ᵢ Q
+───────────────────       True ∗ P ⊣⊢ P       P ∗ True ⊣⊢ P
+P ∗ Q ⊢ᵢ P' ∗ Q'
+
+(P ∗ Q) ∗ R ⊣⊢ P ∗ (Q ∗ R)       P ∗ Q ⊣⊢ Q ∗ P
+
+R ∗ P ⊢ᵢ Q  ↔  R ⊢ᵢ P −∗ Q
+
+P' ⊢ᵢ P    Q ⊢ᵢ Q'
+───────────────────
+(P −∗ Q) ⊢ᵢ (P' −∗ Q')
+```
+
+### Quantifiers
+
+```text
+P t ⊢ᵢ ∃ x, P x          (∀ x, P x ⊢ᵢ Q)  →  (∃ x, P x) ⊢ᵢ Q
+∀ x, P x ⊢ᵢ P t          (∀ x, R ⊢ᵢ P x)  →  R ⊢ᵢ ∀ x, P x
+```
+
+### Always
+
+`□` is MPSL's fixed heap-independent persistent modality.
+
+```text
+P ⊢ᵢ Q  →  □ P ⊢ᵢ □ Q       □ P ⊢ᵢ P
+True ⊢ᵢ P  →  True ⊢ᵢ □ P    □ P ⊣⊢ □ □ P
+□ P ⊢ᵢ □ P ∗ □ P
+
+□ (P ∧ Q) ⊣⊢ □ P ∧ □ Q      □ (P ∨ Q) ⊣⊢ □ P ∨ □ Q
+□ (P ∗ Q) ⊣⊢ □ P ∧ □ Q      □ (P ⇒ Q) ⊢ᵢ (□ P ⇒ □ Q)
+□ (∃ x, P x) ⊣⊢ ∃ x, □ P x
+□ (∀ x, P x) ⊣⊢ ∀ x, □ P x
+```
+
+### Later
+
+```text
+P ⊢ᵢ Q  →  ▷ P ⊢ᵢ ▷ Q       P ⊢ᵢ ▷ P
+
+▷ (P ∧ Q) ⊣⊢ ▷ P ∧ ▷ Q      ▷ (P ∨ Q) ⊣⊢ ▷ P ∨ ▷ Q
+▷ (P ∗ Q) ⊣⊢ ▷ P ∗ ▷ Q      ▷ (∀ x, P x) ⊣⊢ ∀ x, ▷ P x
+
+(∃ x, ▷ P x) ⊢ᵢ ▷ (∃ x, P x)
+▷ (∃ x, P x) ⊢ᵢ ∃ x, ▷ P x                 (given a default witness)
+
+▷ (P ⇒ Q) ⊢ᵢ (▷ P ⇒ ▷ Q)    ▷ (P −∗ Q) ⊢ᵢ (▷ P −∗ ▷ Q)
+□ (▷ P) ⊣⊢ ▷ (□ P)
+```
+
+### Fixed resource
+
+```text
+(l ↦ v₁) ∗ (l ↦ v₂) ⊢ᵢ False
+```
+
+### Unimplemented and out of scope
+
+TODO: add syntax-aware proof-mode Leibniz rewriting after weakening, renaming,
+and capture-avoiding substitution are available for the embedded language. The
+semantic non-expansive substitution rule is already certified here.
+
+MPSL currently has no syntax for internal biconditional, negation, affinely,
+absorbingly, or except-0, so their derived laws are not exposed. Generic
+resource algebras, `Own`, ghost state, view shifts, Löb induction,
+contractiveness, guarded fixed points, and weakest preconditions are deliberate
+non-goals. Converses of the one-way `□` and `▷` rules above are not claimed.
+-/
+
 theorem truth_intro (proposition : IProp Loc Val) : proposition ⊢ᵢ truth := by
   intro heap step holds
   trivial
@@ -277,6 +389,36 @@ theorem equal_refl {Carrier : Type w} (equivAt : Nat -> Carrier -> Carrier -> Pr
     (@truth Loc Val) ⊢ᵢ (@equal Loc Val Carrier equivAt equivAtMono value value) := by
   intro heap step holds
   exact equivAtRefl step value
+
+theorem equal_symm {Carrier : Type w} (equivAt : Nat -> Carrier -> Carrier -> Prop)
+    (equivAtMono : forall {smaller larger left right},
+      smaller <= larger -> equivAt larger left right -> equivAt smaller left right)
+    (equivAtSymm : forall {step left right}, equivAt step left right -> equivAt step right left)
+    (left right : Carrier) :
+    (@equal Loc Val Carrier equivAt equivAtMono left right) ⊢ᵢ
+      (@equal Loc Val Carrier equivAt equivAtMono right left) := by
+  intro heap step equivalent
+  exact equivAtSymm equivalent
+
+theorem equal_trans {Carrier : Type w} (equivAt : Nat -> Carrier -> Carrier -> Prop)
+    (equivAtMono : forall {smaller larger left right},
+      smaller <= larger -> equivAt larger left right -> equivAt smaller left right)
+    (equivAtTrans : forall {step first second third},
+      equivAt step first second -> equivAt step second third -> equivAt step first third)
+    (first second third : Carrier) :
+    and (@equal Loc Val Carrier equivAt equivAtMono first second)
+      (@equal Loc Val Carrier equivAt equivAtMono second third) ⊢ᵢ
+      (@equal Loc Val Carrier equivAt equivAtMono first third) := by
+  intro heap step equivalent
+  exact equivAtTrans equivalent.1 equivalent.2
+
+theorem equal_subst {Carrier : Type w} [OFE Carrier]
+    (predicate : Carrier -> IProp Loc Val) (predicateNonexpansive : OFE.NonExpansive predicate)
+    (left right : Carrier) :
+    and (equal OFE.equivAt (@OFE.mono Carrier _) left right) (predicate left) ⊢ᵢ
+      predicate right := by
+  intro heap step holds
+  exact (predicateNonexpansive step left right holds.1 heap step (Nat.le_refl step)).mp holds.2
 
 theorem and_intro {premise left right : IProp Loc Val} :
     premise ⊢ᵢ left -> premise ⊢ᵢ right -> premise ⊢ᵢ and left right := by
@@ -322,6 +464,13 @@ theorem imp_elim (premise conclusion : IProp Loc Val) :
     and (imp premise conclusion) premise ⊢ᵢ conclusion := by
   intro heap step holds
   exact holds.1 step (Nat.le_refl step) heap (Heap.subheap_refl heap) holds.2
+
+theorem imp_mono {left left' right right' : IProp Loc Val} :
+    left' ⊢ᵢ left -> right ⊢ᵢ right' -> imp left right ⊢ᵢ imp left' right' := by
+  intro leftRule rightRule
+  apply imp_intro
+  exact entails_trans (and_mono (entails_refl (imp left right)) leftRule)
+    (entails_trans (imp_elim left right) rightRule)
 
 theorem sep_mono {left right left' right' : IProp Loc Val} :
     left ⊢ᵢ left' -> right ⊢ᵢ right' -> sep left right ⊢ᵢ sep left' right' := by
@@ -430,6 +579,13 @@ theorem wand_elim (premise conclusion : IProp Loc Val) :
   rw [← combined]
   exact wandHolds step (Nat.le_refl step) premiseHeap disjoint premiseHolds
 
+theorem wand_mono {left left' right right' : IProp Loc Val} :
+    left' ⊢ᵢ left -> right ⊢ᵢ right' -> wand left right ⊢ᵢ wand left' right' := by
+  intro leftRule rightRule
+  apply wand_intro
+  exact entails_trans (sep_mono (entails_refl (wand left right)) leftRule)
+    (entails_trans (wand_elim left right) rightRule)
+
 theorem wand_adjunction {context premise conclusion : IProp Loc Val} :
     sep context premise ⊢ᵢ conclusion ↔ context ⊢ᵢ wand premise conclusion := by
   constructor
@@ -459,6 +615,63 @@ theorem forall_elim {Witness : Type w} (body : Witness -> IProp Loc Val) (witnes
     forall_ body ⊢ᵢ body witness := by
   intro heap step holds
   exact holds witness
+
+theorem always_and_intro (left right : IProp Loc Val) :
+    and (always left) (always right) ⊢ᵢ always (and left right) := by
+  intro heap step holds
+  exact holds
+
+theorem always_and_elim (left right : IProp Loc Val) :
+    always (and left right) ⊢ᵢ and (always left) (always right) := by
+  intro heap step holds
+  exact holds
+
+theorem always_or_intro (left right : IProp Loc Val) :
+    or (always left) (always right) ⊢ᵢ always (or left right) := by
+  intro heap step holds
+  exact holds
+
+theorem always_or_elim (left right : IProp Loc Val) :
+    always (or left right) ⊢ᵢ or (always left) (always right) := by
+  intro heap step holds
+  exact holds
+
+theorem always_sep_intro (left right : IProp Loc Val) :
+    and (always left) (always right) ⊢ᵢ always (sep left right) := by
+  intro heap step holds
+  exact ⟨Heap.empty, Heap.empty, Heap.disjoint_empty_left Heap.empty,
+    Heap.union_empty_left Heap.empty, holds.1, holds.2⟩
+
+theorem always_sep_elim (left right : IProp Loc Val) :
+    always (sep left right) ⊢ᵢ and (always left) (always right) := by
+  intro heap step holds
+  exact ⟨sep_elim_left left right Heap.empty step holds,
+    sep_elim_right left right Heap.empty step holds⟩
+
+theorem always_exists_intro {Witness : Type w} (body : Witness -> IProp Loc Val) :
+    (exists_ fun witness => always (body witness)) ⊢ᵢ always (exists_ body) := by
+  intro heap step holds
+  exact holds
+
+theorem always_exists_elim {Witness : Type w} (body : Witness -> IProp Loc Val) :
+    always (exists_ body) ⊢ᵢ (exists_ fun witness => always (body witness)) := by
+  intro heap step holds
+  exact holds
+
+theorem always_forall_intro {Witness : Type w} (body : Witness -> IProp Loc Val) :
+    (forall_ fun witness => always (body witness)) ⊢ᵢ always (forall_ body) := by
+  intro heap step holds
+  exact holds
+
+theorem always_forall_elim {Witness : Type w} (body : Witness -> IProp Loc Val) :
+    always (forall_ body) ⊢ᵢ (forall_ fun witness => always (body witness)) := by
+  intro heap step holds
+  exact holds
+
+theorem always_imp (left right : IProp Loc Val) :
+    always (imp left right) ⊢ᵢ imp (always left) (always right) := by
+  intro heap step holds smaller smallerIncluded larger heapIncluded leftHolds
+  exact holds smaller smallerIncluded Heap.empty (Heap.subheap_refl Heap.empty) leftHolds
 
 theorem always_mono {left right : IProp Loc Val} :
     left ⊢ᵢ right -> always left ⊢ᵢ always right := by
@@ -490,6 +703,16 @@ theorem always_dup (proposition : IProp Loc Val) :
   exact ⟨Heap.empty, heap, Heap.disjoint_empty_left heap, Heap.union_empty_left heap,
     holds, holds⟩
 
+theorem always_later_intro (proposition : IProp Loc Val) :
+    always (later proposition) ⊢ᵢ later (always proposition) := by
+  intro heap step holds
+  exact holds
+
+theorem always_later_elim (proposition : IProp Loc Val) :
+    later (always proposition) ⊢ᵢ always (later proposition) := by
+  intro heap step holds
+  exact holds
+
 theorem later_mono {left right : IProp Loc Val} :
     left ⊢ᵢ right -> later left ⊢ᵢ later right := by
   intro rule heap step holds
@@ -507,6 +730,107 @@ theorem later_intro (proposition : IProp Loc Val) : proposition ⊢ᵢ later pro
   | succ previous =>
       apply (SProp.succ_mem_later_iff (proposition.holds heap) previous).2
       exact proposition.holds heap |>.downward (Nat.le_succ previous) holds
+
+theorem later_or_intro (left right : IProp Loc Val) :
+    or (later left) (later right) ⊢ᵢ later (or left right) := by
+  intro heap step holds
+  cases step with
+  | zero => exact SProp.zero_mem_later _
+  | succ previous =>
+      apply (SProp.succ_mem_later_iff ((or left right).holds heap) previous).2
+      cases holds with
+      | inl leftHolds =>
+          exact Or.inl ((SProp.succ_mem_later_iff (left.holds heap) previous).1 leftHolds)
+      | inr rightHolds =>
+          exact Or.inr ((SProp.succ_mem_later_iff (right.holds heap) previous).1 rightHolds)
+
+theorem later_or_elim (left right : IProp Loc Val) :
+    later (or left right) ⊢ᵢ or (later left) (later right) := by
+  intro heap step holds
+  cases step with
+  | zero => exact Or.inl (SProp.zero_mem_later _)
+  | succ previous =>
+      have previousHolds :=
+        (SProp.succ_mem_later_iff ((or left right).holds heap) previous).1 holds
+      cases previousHolds with
+      | inl leftHolds =>
+          exact Or.inl ((SProp.succ_mem_later_iff (left.holds heap) previous).2 leftHolds)
+      | inr rightHolds =>
+          exact Or.inr ((SProp.succ_mem_later_iff (right.holds heap) previous).2 rightHolds)
+
+theorem later_exists_intro {Witness : Type w} (body : Witness -> IProp Loc Val) :
+    (exists_ fun witness => later (body witness)) ⊢ᵢ later (exists_ body) := by
+  intro heap step holds
+  cases step with
+  | zero => exact SProp.zero_mem_later _
+  | succ previous =>
+      obtain ⟨witness, witnessHolds⟩ := holds
+      apply (SProp.succ_mem_later_iff ((exists_ body).holds heap) previous).2
+      exact ⟨witness,
+        (SProp.succ_mem_later_iff ((body witness).holds heap) previous).1 witnessHolds⟩
+
+theorem later_exists_elim {Witness : Type w} (body : Witness -> IProp Loc Val)
+    (defaultWitness : Witness) :
+    later (exists_ body) ⊢ᵢ (exists_ fun witness => later (body witness)) := by
+  intro heap step holds
+  cases step with
+  | zero =>
+      exact ⟨defaultWitness, SProp.zero_mem_later _⟩
+  | succ previous =>
+      obtain ⟨witness, witnessHolds⟩ :=
+        (SProp.succ_mem_later_iff ((exists_ body).holds heap) previous).1 holds
+      exact ⟨witness,
+        (SProp.succ_mem_later_iff ((body witness).holds heap) previous).2 witnessHolds⟩
+
+theorem later_forall_intro {Witness : Type w} (body : Witness -> IProp Loc Val) :
+    (forall_ fun witness => later (body witness)) ⊢ᵢ later (forall_ body) := by
+  intro heap step holds
+  cases step with
+  | zero => exact SProp.zero_mem_later _
+  | succ previous =>
+      apply (SProp.succ_mem_later_iff ((forall_ body).holds heap) previous).2
+      intro witness
+      exact (SProp.succ_mem_later_iff ((body witness).holds heap) previous).1
+        (holds witness)
+
+theorem later_forall_elim {Witness : Type w} (body : Witness -> IProp Loc Val) :
+    later (forall_ body) ⊢ᵢ (forall_ fun witness => later (body witness)) := by
+  intro heap step holds witness
+  cases step with
+  | zero => exact SProp.zero_mem_later _
+  | succ previous =>
+      apply (SProp.succ_mem_later_iff ((body witness).holds heap) previous).2
+      exact (SProp.succ_mem_later_iff ((forall_ body).holds heap) previous).1 holds witness
+
+theorem later_imp (left right : IProp Loc Val) :
+    later (imp left right) ⊢ᵢ imp (later left) (later right) := by
+  intro heap step holds smaller smallerIncluded larger heapIncluded leftHolds
+  cases smaller with
+  | zero => exact SProp.zero_mem_later _
+  | succ previous =>
+      have implicationLater : Nat.succ previous ∈ (later (imp left right)).holds heap :=
+        (later (imp left right)).holds heap |>.downward smallerIncluded holds
+      have implication :=
+        (SProp.succ_mem_later_iff ((imp left right).holds heap) previous).1 implicationLater
+      have premise :=
+        (SProp.succ_mem_later_iff (left.holds larger) previous).1 leftHolds
+      apply (SProp.succ_mem_later_iff (right.holds larger) previous).2
+      exact implication previous (Nat.le_refl previous) larger heapIncluded premise
+
+theorem later_wand (left right : IProp Loc Val) :
+    later (wand left right) ⊢ᵢ wand (later left) (later right) := by
+  intro heap step holds smaller smallerIncluded extra disjoint leftHolds
+  cases smaller with
+  | zero => exact SProp.zero_mem_later _
+  | succ previous =>
+      have wandLater : Nat.succ previous ∈ (later (wand left right)).holds heap :=
+        (later (wand left right)).holds heap |>.downward smallerIncluded holds
+      have wandHolds :=
+        (SProp.succ_mem_later_iff ((wand left right).holds heap) previous).1 wandLater
+      have premise :=
+        (SProp.succ_mem_later_iff (left.holds extra) previous).1 leftHolds
+      apply (SProp.succ_mem_later_iff (right.holds (Heap.union heap extra)) previous).2
+      exact wandHolds previous (Nat.le_refl previous) extra disjoint premise
 
 theorem later_and_intro (left right : IProp Loc Val) :
     and (later left) (later right) ⊢ᵢ later (and left right) := by
@@ -558,6 +882,12 @@ theorem later_sep_elim (left right : IProp Loc Val) :
         (SProp.succ_mem_later_iff (left.holds leftHeap) previous).2 leftHolds,
         (SProp.succ_mem_later_iff (right.holds rightHeap) previous).2 rightHolds⟩
 
+/-- Exclusive ownership of one location.
+
+```text
+(l ↦ v₁) ∗ (l ↦ v₂) ⊢ᵢ False
+```
+-/
 theorem pointsTo_exclusive [DecidableEq Loc] (location : Loc) (leftValue rightValue : Val) :
     sep (pointsTo location leftValue) (pointsTo location rightValue) ⊢ᵢ falsum := by
   intro heap step holds
