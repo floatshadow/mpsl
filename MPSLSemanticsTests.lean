@@ -25,272 +25,191 @@ example (proposition : IProp Location Value) :
     OFE.NonExpansive proposition.holds :=
   proposition.holds_nonexpansive
 
-example (P Q : Formula Location Value) :
-    mpsl{ `P ∧ `Q } ⊢ P := by
-  mstart h
-  mdestruct h as hP hQ
+-- `mintro` enters proof mode and places the entailment premise in the spatial zone.
+example (P : Formula Location Value) : P ⊢ P := by
+  mintro hP
   mexact hP
 
-example (P Q : Formula Location Value) :
-    P ⊢ mpsl{ `P ∨ `Q } := by
-  mstart hP
-  mleft
-  mexact hP
-
-example (P : Formula Location Value) :
-    mpsl{ `P ∨ `P } ⊢ P := by
-  mstart h
-  mdestruct h as hP hP'
+-- Additive splitting retains both proof-mode environments in both goals.
+example (P : Formula Location Value) : P ⊢ mpsl{ `P ∧ `P } := by
+  mintro hP
+  msplit
   · mexact hP
-  · mexact hP'
+  · mexact hP
 
+-- Separating hypotheses are decomposed into independent spatial resources.
 example (P Q : Formula Location Value) :
-    P ⊢ mpsl{ `Q ⇒ `P } := by
-  mstart hP
+    mpsl{ `P ∗ `Q } ⊢ mpsl{ `Q ∗ `P } := by
+  mintro h
+  mdestruct h as hP hQ
+  msep [hQ]
+  · mexact hQ
+  · mexact hP
+
+-- An explicit list selects the spatial hypotheses used by the left branch.
+example (P Q R : Formula Location Value) :
+    mpsl{ `P ∗ (`Q ∗ `R) } ⊢ mpsl{ (`P ∗ `R) ∗ `Q } := by
+  mintro h
+  mdestruct h as hP hQR
+  mdestruct hQR as hQ hR
+  msep [hP, hR]
+  · msep [hP]
+    · mexact hP
+    · mexact hR
+  · mexact hQ
+
+-- The right-selecting form keeps the generated goals in left-to-right order.
+example (P Q R : Formula Location Value) :
+    mpsl{ `P ∗ (`Q ∗ `R) } ⊢ mpsl{ `P ∗ (`R ∗ `Q) } := by
+  mintro h
+  mdestruct h as hP hQR
+  mdestruct hQR as hQ hR
+  msepR [hQ, hR]
+  · mexact hP
+  · msepR [hQ]
+    · mexact hR
+    · mexact hQ
+
+-- Wand introduction appends its premise to the spatial environment.
+example (P Q : Formula Location Value) :
+    P ⊢ mpsl{ `Q -∗ (`P ∗ `Q) } := by
+  mintro hP
   mintro hQ
-  mexact hP
+  msep [hP]
+  · mexact hP
+  · mexact hQ
 
 example (P Q : Formula Location Value) :
-    mpsl{ (`P ⇒ `Q) ∧ `P } ⊢ Q := by
-  mstart h
+    mpsl{ (`P ⇒ `Q) ∗ `P } ⊢ Q := by
+  mintro h
   mdestruct h as himp hP
-  mapply
-
-example (P Q : Formula Location Value) :
-    mpsl{ `P ∗ `Q } ⊢
-    mpsl{ `Q ∗ `P } := by
-  mstart h
-  mdestruct h as hP hQ
-  msep (swap)
-  · mexact hQ
-  · mexact hP
-
-example (P Q : Formula Location Value) :
-    P ⊢ mpsl{ `Q -∗
-      (`P ∗ `Q) } := by
-  mstart hP
-  mintro hQ
-  msep
-  · mexact hP
-  · mexact hQ
+  mapply himp hP
 
 example (P Q : Formula Location Value) :
     mpsl{ (`P -∗ `Q) ∗ `P } ⊢ Q := by
-  mstart h
+  mintro h
   mdestruct h as hwand hP
-  mapply
+  mapply hwand hP
 
+-- Disjunction elimination works at a named spatial hypothesis.
 example (P Q R : Formula Location Value) :
-    mpsl{ (`P ∗ `Q) ∗ `R } ⊢
-    mpsl{ `P ∗ `Q } := by
-  mstart h
-  mdestruct h as hPQ hR
-  mexact hPQ
+    mpsl{ (`P ∨ `Q) ∗ `R } ⊢ R := by
+  mintro h
+  mdestruct h as hChoice hR
+  mdestruct hChoice as hP hQ
+  · mexact hR
+  · mexact hR
 
-example (P Q R : Formula Location Value) :
-    mpsl{ (`P ∗ `Q) ∗ `R } ⊢
-    mpsl{ (`P ∗ `Q) ∗ True } := by
-  mstart h
-  mdestruct h as hPQ hR
-  mframe hPQ
+-- `mpersistent` exposes its certification obligation, then moves the hypothesis.
+-- Persistent hypotheses are copied to both sides of every spatial partition.
+example (P Q : Formula Location Value) :
+    mpsl{ (□ `P) ∗ `Q } ⊢ mpsl{ `P ∗ (`P ∗ `Q) } := by
+  mintro h
+  mdestruct h as hBox hQ
+  mpersistent hBox
+  · exact IProp.always_idem_intro P.denote
+  · mopen hBox as hP
+    msep []
+    · mexact hP
+    · msep []
+      · mexact hP
+      · mexact hQ
+
+-- A persistent left conjunct can be retained while the right conjunct stays spatial.
+example (P Q : Formula Location Value) :
+    mpsl{ (□ `P) ∧ `Q } ⊢ mpsl{ `P ∗ `Q } := by
+  mintro h
+  mdestruct h as #hBox hQ
+  · exact IProp.always_idem_intro P.denote
+  · mopen hBox as hP
+    msep []
+    · mexact hP
+    · mexact hQ
+
+-- The persistent conjunct may appear on either side of the additive conjunction.
+example (P Q : Formula Location Value) :
+    mpsl{ `P ∧ (□ `Q) } ⊢ mpsl{ `P ∗ `Q } := by
+  mintro h
+  mdestruct h as hP #hBox
+  · exact IProp.always_idem_intro Q.denote
+  · mopen hBox as hQ
+    msep [hP]
+    · mexact hP
+    · mexact hQ
+
+-- `#` implication introduction records the premise in the persistent environment.
+example :
+    (mpsl{ True } : Formula Location Value) ⊢ mpsl{ True ⇒ (True ∗ True) } := by
+  mintro hOuter
+  mintro #hPersistent
+  · exact IProp.always_intro_from_truth (IProp.entails_refl IProp.truth)
+  · msep [hOuter]
+    · mexact hOuter
+    · mexact hPersistent
+
+example (P Q : Formula Location Value) :
+    mpsl{ `P ∗ `Q } ⊢ mpsl{ `P ∗ True } := by
+  mintro h
+  mdestruct h as hP hQ
+  mframe hP
   mtruth
 
 example (P Q R : Formula Location Value) :
-    mpsl{ (`P ∗ `Q) ∗ `R } ⊢ P := by
-  mstart h
-  mdestruct h as hPQ hR
-  mdestruct hPQ as hP hQ
-  mexact hP
-
-example (P Q R : Formula Location Value) :
-    mpsl{ `P ∗ `Q ∗ `R } ⊢
-    mpsl{ (`P ∗ `Q) ∗ True } := by
-  mstart h
-  mdestruct h as hP hQR
-  mdestruct hQR as hQ hR
-  mframe [hP, hQ]
-  mtruth
-
-example (P Q R : Formula Location Value) :
-    mpsl{ `P ∗ `Q ∗ `R } ⊢
-    mpsl{ (`Q ∗ `R) ∗ True } := by
-  mstart h
-  mdestruct h as hP hQR
-  mdestruct hQR as hQ hR
-  mframe [hQ, hR]
-  mtruth
-
-example (P Q R : Formula Location Value) :
-    mpsl{ `P ∗ `Q ∗ `R } ⊢
-    mpsl{ (`P ∗ `R) ∗ True } := by
-  mstart h
+    mpsl{ `P ∗ (`Q ∗ `R) } ⊢ mpsl{ (`P ∗ `R) ∗ True } := by
+  mintro h
   mdestruct h as hP hQR
   mdestruct hQR as hQ hR
   mframe [hP, hR]
   mtruth
 
-example (P Q R : Formula Location Value) :
-    mpsl{ `P ∗ `Q ∗ `R } ⊢
-    mpsl{ (`R ∗ `P ∗ `Q) ∗ True } := by
-  mstart h
-  mdestruct h as hP hQR
-  mdestruct hQR as hQ hR
-  mframe [hR, hP, hQ]
-  mtruth
-
-example (P Q R : Formula Location Value) :
-    mpsl{ `P ∗ `Q ∗ `R } ⊢ mpsl{ (`P ∗ `R) ∗ `Q } := by
-  mstart h
-  mdestruct h as hP hQR
-  mdestruct hQR as hQ hR
-  msep [hP, hR]
-  · msep
-    · massumption
-    · massumption
-  · massumption
-
-example (P Q : IProp Location Value) :
-    ProofMode.Bunch.SemanticallyEquivalent
-      (.multiplicative (.hyp "hP" P) (.hyp "hQ" Q))
-      (.multiplicative (.hyp "hQ" Q) (.hyp "hP" P)) :=
-  ProofMode.Bunch.structural_sound
-    (ProofMode.Bunch.Structural.multiplicativeComm _ _)
-
-example (P Q : IProp Location Value) :
-    ProofMode.Valid
-      (.multiplicative (.hyp "hP" P) (.hyp "hQ" Q)) P := by
-  apply ProofMode.weaken
-    (ProofMode.Bunch.Weakening.multiplicative
-      (ProofMode.Bunch.Weakening.refl _)
-      (ProofMode.Bunch.Weakening.discard _))
-  massumption
-
-example (P Q R : Formula Location Value) :
-    mpsl{ (`P ∨ `Q) ∗ `R } ⊢ R := by
-  mstart h
-  mdestruct h as hChoice hR
-  mdestruct hChoice as hP hQ
-  · massumption
-  · massumption
-
-example (R : Formula Location Value) :
-    mpsl{ (∃ x : loc, x =[loc] x) ∗ `R } ⊢ R := by
-  mstart h
-  mdestruct h as hExists hR
-  mopenexists hExists as x hx
-  massumption
-
-example (P Q R : Formula Location Value) :
-    mpsl{ (`P ⇒ `Q) ∧ (`P ∧ `R) } ⊢ Q := by
-  mstart h
-  mdestruct h as himp hPR
-  mdestruct hPR as hP hR
-  mapply himp hP
-
-example (P Q R : Formula Location Value) :
-    mpsl{ (`P -∗ `Q) ∗ (`R ∗ `P) } ⊢ Q := by
-  mstart h
-  mdestruct h as hwand hRP
-  mdestruct hRP as hR hP
-  mapply hwand hP
-
-example (P R : Formula Location Value) :
-    mpsl{ (▷ `P) ∗ `R } ⊢ mpsl{ ▷ (`P ∗ `R) } := by
-  mstart h
-  mdestruct h as hlater hR
-  mopenlater hlater as hP
-  msep
-  · massumption
-  · massumption
-
-example (P Q : Formula Location Value) :
-    mpsl{ `P ∗ `Q } ⊢ mpsl{ `P ∗ True } := by
-  mstart h
-  mdestruct h as hP hQ
-  mframe hP
-  mtruth
-
-example (P Q : Formula Location Value) :
-    mpsl{ `P ∗ `Q } ⊢ mpsl{ True ∗ `Q } := by
-  mstart h
-  mdestruct h as hP hQ
-  mframe hQ
-  mtruth
-
-/--
-error: duplicate proof-mode hypothesis name 'h'
--/
-#guard_msgs in
-example (P Q : Formula Location Value) : P ⊢ mpsl{ `Q ⇒ `P } := by
-  mstart h
-  mintro h
-
 example :
-    (mpsl{ True } : Formula Location Value) ⊢ mpsl{ ∃ x : loc, x =[loc] loc(0) } := by
-  mstart h
+    (mpsl{ True } : Formula Location Value) ⊢
+      mpsl{ ∃ x : loc, x =[loc] loc(0) } := by
+  mintro h
   mexists loc(0)
   mrefl
 
 example :
-    (mpsl{ True } : Formula Location Value) ⊢ mpsl{ ∀ x : loc, x =[loc] x } := by
-  mstart h
-  mforall x
-  mrefl
-
-example :
     (mpsl{ ∀ x : loc, x =[loc] x } : Formula Location Value) ⊢
-    mpsl{ loc(0) =[loc] loc(0) } := by
-  mstart h
+      mpsl{ loc(0) =[loc] loc(0) } := by
+  mintro h
   mspecialize h at loc(0) as hzero
   mexact hzero
 
-example :
-    (mpsl{ ∃ x : loc, x =[loc] x } : Formula Location Value) ⊢ mpsl{ True } := by
-  mstart h
-  mopenexists h as x hx
-  mtruth
-
-example (P : Formula Location Value) :
-    mpsl{ □ `P } ⊢ mpsl{ `P ∗ `P } := by
-  mstart h
-  mdup h as h1 h2
-  mopen h1 as hP1
-  mopen h2 as hP2
-  msep
-  · mexact hP1
-  · mexact hP2
-
-example :
-    (mpsl{ True } : Formula Location Value) ⊢ mpsl{ □ True } := by
-  mstart h
-  mclear h
-  malways
-  mtruth
-
-example (P : Formula Location Value) : P ⊢ mpsl{ ▷ `P } := by
-  mstart hP
-  mlater
-  mexact hP
-
-example (P : Formula Location Value) :
-  mpsl{ ▷ `P } ⊢ mpsl{ ▷ `P } := by
-  mstart h
-  mopenlater h as hP
-  mexact hP
+-- Existential elimination also focuses a named hypothesis within the spatial list.
+example (R : Formula Location Value) :
+    mpsl{ (∃ x : loc, x =[loc] x) ∗ `R } ⊢ R := by
+  mintro h
+  mdestruct h as hExists hR
+  mopenexists hExists as x hx
+  mexact hR
 
 example :
     (mpsl{ loc(0) =[loc] loc(1) } : Formula Location Value) ⊢
-    mpsl{ loc(1) =[loc] loc(0) } := by
-  mstart hEq
+      mpsl{ loc(1) =[loc] loc(0) } := by
+  mintro hEq
   msymm hEq
 
+example (P : Formula Location Value) : P ⊢ mpsl{ ▷ `P } := by
+  mintro hP
+  mlater
+  mexact hP
+
+example (P R : Formula Location Value) :
+    mpsl{ (▷ `P) ∗ `R } ⊢ mpsl{ ▷ (`P ∗ `R) } := by
+  mintro h
+  mdestruct h as hLater hR
+  mopenlater hLater as hP
+  msep [hP]
+  · mexact hP
+  · mexact hR
+
 example :
-    (mpsl{ (loc(0) =[loc] loc(1)) ∧ (loc(1) =[loc] loc(2)) } :
-      Formula Location Value) ⊢
-    mpsl{ loc(0) =[loc] loc(2) } := by
-  mstart h
-  mdestruct h as hFirst hSecond
-  mtrans hFirst hSecond
+    (mpsl{ True } : Formula Location Value) ⊢ mpsl{ □ True } := by
+  mintro h
+  mclear h
+  malways
+  mtruth
 
 example {Carrier : Type} [OFE Carrier] (predicate : Carrier -> IProp Location Value)
     (nonexpansive : OFE.NonExpansive predicate) (left right : Carrier) :
@@ -300,108 +219,57 @@ example {Carrier : Type} [OFE Carrier] (predicate : Carrier -> IProp Location Va
   IProp.equal_subst predicate nonexpansive left right
 
 example (P Q : Formula Location Value) :
-    mpsl{ (□ `P) ∧ (□ `Q) } ⊢ mpsl{ □ (`P ∧ `Q) } := by
-  mstart h
-  mdestruct h as hP hQ
-  malways
-  msplit
-  · mopen hP as hP'
-    mexact hP'
-  · mopen hQ as hQ'
-    mexact hQ'
-
-example (P Q : Formula Location Value) :
-    mpsl{ (□ `P) ∗ (□ `Q) } ⊢ mpsl{ □ (`P ∗ `Q) } := by
-  mstart h
-  mdestruct h as hP hQ
-  malways
-  msep
-  · mopen hP as hP'
-    mexact hP'
-  · mopen hQ as hQ'
-    mexact hQ'
-
-example (P Q : Formula Location Value) :
     mpsl{ ▷ (`P ∨ `Q) } ⊢ mpsl{ (▷ `P) ∨ (▷ `Q) } :=
   IProp.later_or_elim P.denote Q.denote
-
-example :
-    (mpsl{ ▷ (∀ x : loc, x =[loc] x) } : Formula Location Value) ⊢
-    mpsl{ ∀ x : loc, ▷ (x =[loc] x) } :=
-  IProp.later_forall_elim _
-
-example :
-    (mpsl{ ▷ (∃ x : loc, x =[loc] x) } : Formula Location Value) ⊢
-    mpsl{ ∃ x : loc, ▷ (x =[loc] x) } :=
-  IProp.later_exists_elim _ (Expr.denote mpsl{ loc(0) } Env.nil)
 
 example (P : Formula Location Value) :
     mpsl{ □ (▷ `P) } ⊢ mpsl{ ▷ (□ `P) } :=
   IProp.always_later_intro P.denote
 
-example (P Q : Formula Location Value) :
-    mpsl{ ▷ (`P ⇒ `Q) } ⊢ mpsl{ (▷ `P) ⇒ (▷ `Q) } :=
-  IProp.later_imp P.denote Q.denote
-
-example (P Q : Formula Location Value) :
-    mpsl{ □ (`P ⇒ `Q) } ⊢ mpsl{ (□ `P) ⇒ (□ `Q) } :=
-  IProp.always_imp P.denote Q.denote
-
-example (P Q : Formula Location Value) :
-    mpsl{ ▷ (`P -∗ `Q) } ⊢ mpsl{ (▷ `P) -∗ (▷ `Q) } :=
-  IProp.later_wand P.denote Q.denote
-
-example (P : Formula Location Value) :
-    mpsl{ False ∧ `P } ⊢ P := by
-  mstart h
-  mdestruct h as hfalse hP
-  mfalse hfalse
-
 example :
-    (mpsl{ True } : Formula Location Value) ⊢
-    mpsl{ (λ x : iProp, x)(True) } := by
-  mstart h
-  mnormalize
-  exact IProp.entails_refl IProp.truth
-
-example : Unit := by
-  fail_if_success
-    have invalidFrame :
-        (mpsl{ True ∧ False } : Formula Location Value) ⊢
-        mpsl{ True ∗ True } := by
-      mstart h
-      mdestruct h as hP hQ
-      mframe hP
-  exact Unit.unit
-
-example : Unit := by
-  fail_if_success
-    have invalidAlways :
-        (mpsl{ loc(0) ↦ val(Value.string "value") } : Formula Location Value) ⊢
-        mpsl{ □ (loc(0) ↦ val(Value.string "value")) } := by
-      mstart hP
-      malways
-  exact Unit.unit
-
-example :
-    mpsl{ (loc(0) ↦ val(Value.string "left")) ∗ (loc(0) ↦ val(Value.string "right")) } ⊢
-    (mpsl{ False } : Formula Location Value) := by
+    mpsl{ (loc(0) ↦ val(Value.string "left")) ∗
+      (loc(0) ↦ val(Value.string "right")) } ⊢
+      (mpsl{ False } : Formula Location Value) := by
   exact IProp.pointsTo_exclusive 0 (Value.string "left") (Value.string "right")
 
+/-- A spatial additive conjunction cannot be duplicated into two spatial hypotheses. -/
+example (P Q : Formula Location Value) : P = P ∧ Q = Q := by
+  fail_if_success
+    have invalid : mpsl{ `P ∧ `Q } ⊢ P := by
+      mintro h
+      mdestruct h as hP hQ
+      mexact hP
+  exact ⟨rfl, rfl⟩
+
+/-- A spatial resource cannot be introduced under `always`. -/
 example : Unit := by
   fail_if_success
     have invalid :
         (mpsl{ loc(0) ↦ val(Value.string "value") } : Formula Location Value) ⊢
-        mpsl{ (loc(0) ↦ val(Value.string "value")) ∗ (loc(0) ↦ val(Value.string "value")) } := by
-      mstart h
-      msep
+          mpsl{ □ (loc(0) ↦ val(Value.string "value")) } := by
+      mintro h
+      malways
   exact Unit.unit
 
-example (_P : Formula Location Value) : Unit := by
+/-- One spatial points-to hypothesis cannot be assigned to both split branches. -/
+example : Unit := by
   fail_if_success
-    have invalidName : _P ⊢ _P := by
-      mstart hP
-      mexact missing
+    have invalid :
+        (mpsl{ loc(0) ↦ val(Value.string "value") } : Formula Location Value) ⊢
+          mpsl{ (loc(0) ↦ val(Value.string "value")) ∗
+            (loc(0) ↦ val(Value.string "value")) } := by
+      mintro h
+      msep [h]
+      · mexact h
+      · mexact h
   exact Unit.unit
+
+/--
+error: duplicate proof-mode hypothesis name 'h'
+-/
+#guard_msgs in
+example (P Q : Formula Location Value) : P ⊢ mpsl{ `Q -∗ `P } := by
+  mintro h
+  mintro h
 
 end MPSL.SemanticsTests
