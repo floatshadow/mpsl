@@ -46,9 +46,11 @@
   smallnote/.style={font=\scriptsize, text=black!58}
 }
 
-% Lean snippets. Unicode logical symbols are mapped to math-mode glyphs.
+% Lean snippets. Mathematical symbols are inserted through TeX escapes so the
+% source remains ASCII-safe.
 \lstdefinelanguage{Lean}{
-  morekeywords={example,def,theorem,by,import,open,scoped,exact,where,forall},
+  morekeywords={example,def,theorem,by,import,open,scoped,exact,where,forall,
+    inductive,abbrev,structure,private,partial,match,with,let,return,unless,if,then,else},
   sensitive=true,
   morecomment=[l]{--},
   morestring=[b]",
@@ -67,14 +69,5 @@
   columns=fullflexible,
   keepspaces=true,
   showstringspaces=false,
-  escapeinside={(*@}{@*)},
-  literate=
-    {▷}{{$\Later$}}1
-    {□}{{$\Always$}}1
-    {⊢}{{$\Entails$}}1
-    {∗}{{$\Sep$}}1
-    {↦}{{$\mapsto$}}1
-    {∀}{{$\forall$}}1
-    {∃}{{$\exists$}}1
-    {⇒}{{$\Rightarrow$}}1
+  escapeinside={(*@}{@*)}
 }

@@ -1,5 +1,6 @@
 %!LW recipe=latexmk
 % !TEX root = main.tex
+% !TEX program = xelatex
 %# -*- coding:utf-8 -*-
 
 \PassOptionsToPackage{quiet}{fontspec}
@@ -16,18 +17,15 @@
 \usepackage{amssymb}
 \usepackage{stmaryrd}
 \usepackage{mathpartir}
-\usepackage{pifont}
-\usepackage{tikz}
-\usetikzlibrary{fit,arrows.meta,backgrounds,positioning,calc,shapes.geometric,decorations.pathreplacing}
 \usepackage{listings}
-% \usepackage{listings-ocaml}
-% \usepackage{listings-c}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
 
 \input{macro}
 
 \graphicspath{{./figures/}}
-\renewcommand{\arraystretch}{1.2}
-\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.28}
+\setlength{\tabcolsep}{5pt}
 
 \title[MPSL]{A DSL for Step-indexed Higher-order Separation Logic in Lean}
 \subtitle{Project Report for ZJU AI4Math Summer School}
@@ -38,15 +36,8 @@
 
 \begin{document}
 
-% Suggested timing (about 14 minutes total, leaving 5 minutes for questions):
-%   motivation and separating conjunction  0:30--4:00
-%   the MPSL implementation                4:00--7:00
-%   step indexing, later, and Loeb         7:00--12:30
-%   scope and takeaways                   12:30--14:00
-
 \begin{frame}
   \vspace{1.35cm}
-
   {\Huge\bfseries\textcolor{PKURed}{A DSL for Step-indexed \\Higher-order Separation Logic in Lean}\par}
   \vspace{1.50cm}
   {\normalsize Siyuan Zhu and Qihao Lian\par}
@@ -56,357 +47,682 @@
   {\normalsize July 2026\par}
 \end{frame}
 
+\section{Background}
 
-
-% Speaker: Start from a familiar distinction: mathematical facts are reusable,
-% but ownership claims are not. Do not name separation logic until the end.
-\begin{frame}{When hypotheses own things}
-  \slidelead{Ordinary logic treats assumptions as reusable knowledge.}
-
-  \vspace{0.3cm}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.47\textwidth}
-      \begin{center}
-        \begin{tikzpicture}
-          \node[persistent, minimum width=4.2cm] (fact)
-            {Fact: $x=3$};
-          \node[below=5mm of fact, text width=4.2cm, align=center]
-            {Use it in every branch\\of a proof.};
-        \end{tikzpicture}
-      \end{center}
-    \end{column}
-    \begin{column}{0.47\textwidth}
-      \begin{center}
-        \begin{tikzpicture}
-          \node[resource, minimum width=4.2cm] (cell)
-            {Ownership: $0\mapsto\texttt{"Alice"}$};
-          \node[below=5mm of cell, text width=4.2cm, align=center]
-            {Giving it to two branches\\would duplicate a resource.};
-        \end{tikzpicture}
-      \end{center}
-    \end{column}
-  \end{columns}
-
-  \vfill
-  \begin{center}
-    \large Can a proof assistant check both \kw{truth} and \kw{resource use}?
-  \end{center}
-\end{frame}
-
-\begin{frame}{A second conjunction}
-  \slidelead{A resource assertion $P:\Heap\to\PropCat$ says which owned heaps make $P$ true.}
-
+\begin{frame}{Assertions may own resources}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.46\textwidth}
-      \minorhead{Additive conjunction}
-      \[
-        (P\land Q)(h) \quad\Longleftrightarrow\quad
-        P(h)\land Q(h)
-      \]
-      Both claims inspect the \kw{same} resource.
+      \minorhead{Ordinary assumptions}
+      \begin{itemize}
+        \item reusable facts;
+        \item contraction is valid;
+        \item example: $x=3$.
+      \end{itemize}
     \end{column}
-    \begin{column}{0.51\textwidth}
-      \minorhead{Separating conjunction}
-      \[
-        \begin{aligned}
-        (P\Sep Q)(h) \quad\Longleftrightarrow\quad
-        \exists h_1,h_2.\;&h_1\disjoint h_2 \\
-          {}\land\;&h=h_1\heapunion h_2\\
-          {}\land\;&P(h_1)\land Q(h_2)
-        \end{aligned}
-      \]
-      The claims receive \kw{disjoint} resources.
+    \begin{column}{0.49\textwidth}
+      \minorhead{Spatial assumptions}
+      \begin{itemize}
+        \item owned resources;
+        \item no spatial duplication;
+        \item example: $l\mapsto v$.
+      \end{itemize}
     \end{column}
   \end{columns}
-
-  \begin{center}
-    \begin{tikzpicture}[node distance=12mm]
-      \node[pptbox, minimum width=2.5cm] (whole) {$h=h_1\heapunion h_2$};
-      \node[resource, below left=5mm and 13mm of whole] (left) {$h_1\models P$};
-      \node[resource, below right=5mm and 13mm of whole] (right) {$h_2\models Q$};
-      \draw[pptarrow] (whole) -- (left);
-      \draw[pptarrow] (whole) -- (right);
-      \node[smallnote, below=2mm of whole] {$h_1\disjoint h_2$};
-    \end{tikzpicture}
-  \end{center}
-\end{frame}
-
-\begin{frame}{Two laws you can now predict}
-  \slidelead{The algebra of $\Sep$ comes from splitting heaps.}
-
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.48\textwidth}
-      \minorhead{Rearranging independent ownership}
-      \keyeq{(0\mapsto A)\Sep(1\mapsto B)
-        \;\Entails\;(1\mapsto B)\Sep(0\mapsto A)}
-      Swap the two disjoint pieces.
-    \end{column}
-    \begin{column}{0.48\textwidth}
-      \minorhead{Exclusive ownership}
-      \keyeq{(0\mapsto A)\Sep(0\mapsto A)
-        \;\Entails\;\false}
-      One location cannot occur in both pieces.
-    \end{column}
-  \end{columns}
-
-  \vfill
-  \begin{center}
-    \large This is the central idea of \kw{separation logic}.
-  \end{center}
-\end{frame}
-
-\begin{frame}{The project in one sentence}
-  \slidelead{MPSL is a small, kernel-checked laboratory for a resource logic.}
-
-  \begin{center}
-    \begin{tikzpicture}[node distance=7mm and 8mm]
-      \node[pptbox, minimum width=2.6cm] (surface) {surface language\\\texttt{mpsl\{...\}}};
-      \node[pptbox, right=of surface, minimum width=2.6cm] (typed) {intrinsically\\typed syntax};
-      \node[pptbox, right=of typed, minimum width=2.6cm] (sem) {step-indexed\\heap semantics};
-      \node[pptbox, right=of sem, minimum width=2.6cm] (kernel) {Lean kernel\\checked proof};
-      \draw[pptarrow] (surface) -- node[above,smallnote]{elaborate} (typed);
-      \draw[pptarrow] (typed) -- node[above,smallnote]{denote} (sem);
-      \draw[pptarrow] (sem) -- node[above,smallnote]{proved rules} (kernel);
-    \end{tikzpicture}
-  \end{center}
 
   \vspace{0.55cm}
+  \keyeq{\Heap(\mathit{Loc},\mathit{Val}) = \mathit{Loc}\to\mathsf{Option}(\mathit{Val})}
+
+  \begin{itemize}
+    \item MPSL resource: an exclusive partial heap;
+    \item affine logic: resources may be discarded, not duplicated.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Additive and separating conjunction}
+  \begin{table}
+    \centering
+    \begin{tabularx}{\textwidth}{>{\bfseries}p{0.18\textwidth} Y Y}
+      \toprule
+      & Additive $P\land Q$ & Separating $P\Sep Q$ \\
+      \midrule
+      Resource
+        & same heap $h$
+        & disjoint heaps $h_1\disjoint h_2$ \\
+      Semantics
+        & $P(h)\land Q(h)$
+        & $h=h_1\heapunion h_2$, $P(h_1)$, $Q(h_2)$ \\
+      Proof use
+        & both branches retain the context
+        & spatial context is partitioned \\
+      \bottomrule
+    \end{tabularx}
+  \end{table}
+
+  \vspace{0.35cm}
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.31\textwidth}
-      \minorhead{Language}
-      Higher-order formulas, quantifiers, equality, $\Sep$, $\Always$, and $\Later$.
+    \begin{column}{0.49\textwidth}
+      \keyeq{P\Sep Q\;\Entails\;Q\Sep P}
     \end{column}
-    \begin{column}{0.31\textwidth}
-      \minorhead{Semantics}
-      Partial heaps, exclusive points-to, finite observations, and proved laws.
-    \end{column}
-    \begin{column}{0.31\textwidth}
-      \minorhead{Proof mode}
-      Named reusable and spatial contexts with explicit resource partitioning.
+    \begin{column}{0.49\textwidth}
+      \keyeq{(l\mapsto v_1)\Sep(l\mapsto v_2)\;\Entails\;\false}
     \end{column}
   \end{columns}
 \end{frame}
 
-\begin{frame}[fragile]{A proof is resource bookkeeping}
+\begin{frame}{Recursive types create recursive semantic domains}
+  \minorhead{List values}
+  \keyeq{\mathcal V(\tau\ \mathsf{list})
+    =\mu X.\;\{\mathsf{Nil}\}\cup
+      \{\mathsf{Cons}(v,w)\mid
+        v\in\mathcal V(\tau)\land w\in X\}}
+
+  \begin{itemize}
+    \item the definition of list values refers to the domain being defined;
+    \item general recursive types induce recursive domain equations:
+  \end{itemize}
+
+  \keyeq{D\cong F(D)}
+
+  \begin{itemize}
+    \item domain theory constructs solutions under suitable conditions;
+    \item step indexing instead exposes finite approximations indexed by $n$.
+  \end{itemize}
+
+  \vfill
+  \muted{Motivation only: MPSL does not implement recursive types or predicates.}
+\end{frame}
+
+\begin{frame}{Step propositions are downward closed}
+  \begin{itemize}
+    \item \texttt{SProp}: a downward-closed predicate on $\mathbb N$;
+    \item $n\in P$: $P$ is observable for $n$ steps;
+    \item truth at a larger index implies truth at every smaller index.
+  \end{itemize}
+
+  \keyeq{m\le n\ \land\ n\in P\quad\Longrightarrow\quad m\in P}
+
+  \vspace{0.25cm}
+  \minorhead{Finite-observation equality}
+  \keyeq{P=_nQ\quad\Longleftrightarrow\quad
+    \forall m\le n,\;(m\in P\leftrightarrow m\in Q)}
+
+\end{frame}
+
+\begin{frame}{Later shifts the observation index}
+  \keyeq{n\in\Later P\quad\Longleftrightarrow\quad
+    n=0\ \lor\ \exists m,\;n=m+1\land m\in P}
+
+  \begin{itemize}
+    \item $(\Later P)_0=\true$;
+    \item $(\Later P)_{n+1}=P_n$;
+    \item $P\Entails\Later P$;
+    \item $(\Later P\Rightarrow P)\Entails P$ \quad (L\"ob).
+  \end{itemize}
+
+  \vspace{0.35cm}
+  \begin{center}
+    \large $\Later P$: one weaker finite approximation of $P$.
+  \end{center}
+
+  \vfill
+  \scriptsize\muted{In MPSL, $\Later$ shifts only the logical index; it is not a program step.}
+\end{frame}
+
+\begin{frame}{OFEs control higher-order observations}
+  \minorhead{Ordered family of equivalences}
+  \begin{itemize}
+    \item $=_n$ is an equivalence relation;
+    \item $n\ge m$ and $x=_n y$ imply $x=_m y$;
+    \item $(\forall n,\; x =_n y)$ implies $x = y$.
+  \end{itemize}
+
+  \minorhead{Non-expansive function}
+  \keyeq{x=_n y\quad\Longrightarrow\quad f(x)=_n f(y)}
+
+  \begin{itemize}
+    \item object-language arrows denote \texttt{NEFun};
+    \item MPSL implements OFEs, not COFEs or contractive maps;
+    \item no guarded fixed-point operator is implemented.
+  \end{itemize}
+\end{frame}
+
+\section{Syntax and elaboration}
+
+\begin{frame}{One typed syntax covers terms and propositions}
+  \minorhead{Types}
+  \[
+    \tau ::= \mathsf{loc}\mid\mathsf{val}\mid\mathsf{iProp}\mid
+    \mathbf 0\mid\mathbf 1\mid\tau\times\tau\mid\tau+\tau\mid\tau\to\tau
+  \]
+
+  \minorhead{Terms}
+  \[
+    \begin{aligned}
+    t,u,P,Q ::= {}&x\mid()\mid\lambda\,x : \tau.\, t\mid t(u)\mid(t,u)\mid\cdots\\
+      &\mid\false\mid\true\mid t =_{\tau} u\mid P\Rightarrow Q\mid P\land Q\mid P\lor Q\\
+      &\mid P\Sep Q\mid P\Wand Q\mid\forall\,x : \tau.\, P\mid\exists\,x : \tau.\, P\\
+      &\mid l\mapsto v\mid\Always P\mid\Later P
+    \end{aligned}
+  \]
+
+  \begin{itemize}
+    \item formulas are terms of type $\mathsf{iProp}$;
+    \item $\mathsf{loc}$ and $\mathsf{val}$ are distinct object types.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Ty defines the object-language universe}
+\begin{lstlisting}[style=leancode]
+inductive Ty where
+  | loc
+  | val
+  | iprop
+  | empty
+  | unit
+  | prod (left right : Ty)
+  | sum (left right : Ty)
+  | arr (domain codomain : Ty)
+\end{lstlisting}
+
+  \begin{itemize}
+    \item \texttt{loc} and \texttt{val}: distinct object-language types;
+    \item \texttt{iprop}: the object type of assertions;
+    \item \texttt{arr}: interpreted by non-expansive functions.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Expr constructors encode typing rules}
+\begin{lstlisting}[style=leancode,basicstyle=\ttfamily\tiny]
+inductive Expr (Loc Val) : List Ty -> Ty -> Type where
+  | lam {ctx} {arg result} :
+      Expr Loc Val (arg :: ctx) result ->
+      Expr Loc Val ctx (.arr arg result)
+  | app {ctx} {arg result} :
+      Expr Loc Val ctx (.arr arg result) ->
+      Expr Loc Val ctx arg -> Expr Loc Val ctx result
+  | sep {ctx} :
+      Expr Loc Val ctx .iprop -> Expr Loc Val ctx .iprop ->
+      Expr Loc Val ctx .iprop
+  | all {ctx} {ty} :
+      Expr Loc Val (ty :: ctx) .iprop -> Expr Loc Val ctx .iprop
+  | pointsTo {ctx} :
+      Expr Loc Val ctx .loc -> Expr Loc Val ctx .val ->
+      Expr Loc Val ctx .iprop
+
+abbrev Formula (Loc Val) := Expr Loc Val [] .iprop
+\end{lstlisting}
+
+  \vfill
+  \keyeq{\Gamma\vdash t:\tau\quad\text{is represented by}\quad
+    \texttt{Expr Loc Val $\Gamma$ $\tau$}}
+\end{frame}
+
+\begin{frame}[fragile]{Elaboration carries an object type with each term}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.53\textwidth}
-\begin{lstlisting}[style=leancode]
-example (P Q : Formula Nat String) :
-    mpsl{ `P ∗ `Q } (*@$\Entails$@*) mpsl{ `Q ∗ `P } := by
-  mintro h
-  mdestruct h as hP hQ
-  msep [hQ]
-  · mexact hQ
-  · mexact hP
+\begin{lstlisting}[style=leancode,basicstyle=\ttfamily\tiny]
+private structure CompiledExpr where
+  ty : Ty
+  term : TSyntax `term
+
+private structure Binding where
+  name : Name
+  ty : Ty
+
+private abbrev Context := List Binding
+
+private partial def compileExpr
+    (ctx : Context) :
+    Syntax -> TermElabM CompiledExpr
 \end{lstlisting}
     \end{column}
     \begin{column}{0.43\textwidth}
-      \minorhead{After \texttt{mdestruct}}
-      \begin{tikzpicture}
-        \node[persistent, minimum width=4.2cm] (p) {reusable facts};
-        \node[resource, below=3mm of p, minimum width=4.2cm] (s)
-          {$h_P:P\qquad h_Q:Q$};
-        \node[pptbox, below=3mm of s, minimum width=4.2cm] (g)
-          {goal: $Q\Sep P$};
-      \end{tikzpicture}
-
-      \vspace{0.35cm}
-      \texttt{msep [hQ]} sends $h_Q$ left and the remaining resource $h_P$ right.
+      \begin{itemize}
+        \item every syntax node returns its inferred \texttt{Ty};
+        \item \texttt{Context} records binder names and object types;
+        \item identifiers compile to typed de Bruijn \texttt{Var}s;
+        \item \texttt{expectType} rejects mismatches immediately.
+      \end{itemize}
     \end{column}
   \end{columns}
-
-  \vfill
-  \muted{Every tactic applies a proved semantic rule; it does not become part of the trusted logic.}
 \end{frame}
 
-% Speaker: This is the category-theoretic entry point. Prop is regarded as the
-% preorder/category of propositions and implications.
-\begin{frame}{A proposition observed at every precision}
-  \slidelead{Replace one proposition by a coherent diagram of approximations.}
-
-  Let $\omega=(\mathbb{N},\leq)$ and regard propositions and implications as a category:
-  \[
-    P : \omega^{\mathrm{op}} \longrightarrow \PropCat.
-  \]
-
-  \begin{center}
-    \begin{tikzpicture}[node distance=15mm]
-      \node[stage] (p0) {$P_0$};
-      \node[stage, right=of p0] (p1) {$P_1$};
-      \node[stage, right=of p1] (p2) {$P_2$};
-      \node[stage, right=of p2] (p3) {$P_3$};
-      \node[right=8mm of p3] (dots) {$\cdots$};
-      \draw[pptarrow] (p1) -- (p0);
-      \draw[pptarrow] (p2) -- (p1);
-      \draw[pptarrow] (p3) -- (p2);
-      \draw[pptarrow] (dots) -- (p3);
-    \end{tikzpicture}
-  \end{center}
-
-  \keyeq{m\leq n \quad\Longrightarrow\quad P_n\Rightarrow P_m}
-
-  \begin{center}
-    $P_n$: ``$P$ survives observation at precision $n$.''
-  \end{center}
-
-  \vfill
-  \muted{This is MPSL's \texttt{SProp}: a downward-closed predicate on $\mathbb{N}$.}
-\end{frame}
-
-\begin{frame}{Later is the shift of the diagram}
-  \slidelead{No clock and no program execution: $\Later$ lowers precision by one.}
-
-  \keyeq{(\Later P)_0=\true,
-    \qquad (\Later P)_{n+1}=P_n}
-
-  \begin{center}
-    \begin{tikzpicture}[node distance=13mm]
-      \node[stage] (t) {$\top$};
-      \node[stage, right=of t] (p0) {$P_0$};
-      \node[stage, right=of p0] (p1) {$P_1$};
-      \node[stage, right=of p1] (p2) {$P_2$};
-      \node[right=8mm of p2] (dots) {$\cdots$};
-      \draw[pptarrow] (p0) -- (t);
-      \draw[pptarrow] (p1) -- (p0);
-      \draw[pptarrow] (p2) -- (p1);
-      \draw[pptarrow] (dots) -- (p2);
-      \node[below=6mm of t, smallnote] {precision 0};
-      \node[below=6mm of p0, smallnote] {precision 1};
-      \node[below=6mm of p1, smallnote] {precision 2};
-      \node[below=6mm of p2, smallnote] {precision 3};
-    \end{tikzpicture}
-  \end{center}
-
-  \vspace{0.45cm}
-  \minorhead{Why does $P\Entails\Later P$ hold?}
-  At level $0$, $\Later P$ is automatic. At level $n+1$, downward closure
-  gives exactly the required map $P_{n+1}\Rightarrow P_n$.
-\end{frame}
-
-\begin{frame}{L\"ob induction is induction in disguise}
-  \slidelead{A seemingly circular hypothesis is guarded by a strictly smaller index.}
-
-  \[
-    \inferrule
-      {\Later P\Entails P}
-      {\Entails P}
-    \qquad\text{(L\"ob)}
-  \]
-
-  Fix a heap $h$.  We prove $P(h,n)$ for every $n$ by ordinary induction.
+\begin{frame}[fragile]{Elaborating mpsl\{...\}}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.56\textwidth}
+      \minorhead{Application case (abridged)}
+\begin{lstlisting}[style=leancode,basicstyle=\ttfamily\tiny]
+let function (*@$\leftarrow$@*) compileExpr ctx function
+let argument (*@$\leftarrow$@*) compileExpr ctx argument
+match function.ty with
+| .arr domain codomain =>
+    expectType stx argument.ty domain
+    return {
+      ty := codomain
+      term := Expr.app function.term argument.term
+    }
+| actual => throwError ...
+\end{lstlisting}
+    \end{column}
+    \begin{column}{0.40\textwidth}
+      \minorhead{Term elaborator entry}
+\begin{lstlisting}[style=leancode,basicstyle=\ttfamily\tiny]
+elab_rules : term <= expectedType
+| `(mpsl{ $body:mpslTerm }) => do
+    let body (*@$\leftarrow$@*) compileExpr [] body
+    if (*@$\leftarrow$@*) expectsFormula expectedType then
+      expectType body.term body.ty .iprop
+    elabTerm body.term
+      (some expectedType)
+\end{lstlisting}
+    \end{column}
+  \end{columns}
 
   \vspace{0.25cm}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.47\textwidth}
-      \minorhead{Base case: $n=0$}
-      \[
-        (\Later P)(h,0)=\true.
-      \]
-      The premise $\Later P\Entails P$ therefore proves $P(h,0)$.
-    \end{column}
-    \begin{column}{0.49\textwidth}
-      \minorhead{Inductive step: $n\rightsquigarrow n+1$}
-      \[
-        (\Later P)(h,n+1)=P(h,n).
-      \]
-      The induction hypothesis supplies the left-hand side; the premise gives $P(h,n+1)$.
-    \end{column}
-  \end{columns}
-
-  \vfill
-  \begin{center}
-    \large ``Assume $P$ later'' means ``assume $P$ at a smaller index.''
-
-    \vspace{0.15cm}
-    \scriptsize\muted{MPSL's \texttt{mlob ih} implements this rule. With spatial resources it guards
-      $\Gamma_s\Wand P$, so the induction hypothesis cannot duplicate ownership.}
-  \end{center}
+  \begin{itemize}
+    \item explicit host embeddings: \texttt{loc(e)}, \texttt{val(e)}, \texttt{`P}, \texttt{embed[$\tau$](e)}.
+  \end{itemize}
 \end{frame}
 
-\begin{frame}{Finite agreement makes higher order safe}
-  \slidelead{At precision $n$, assertions are compared only through level $n$.}
+\section{Proof architecture}
 
-  \keyeq{P =_n Q
-    \quad\Longleftrightarrow\quad
-    \forall m\leq n,\; P_m\leftrightarrow Q_m}
-
-  A function on assertions is required to be \kw{non-expansive}:
-  \[
-    P=_n Q \quad\Longrightarrow\quad F(P)=_n F(Q).
-  \]
-
+\begin{frame}{MPSL dependency architecture}
   \begin{center}
-    \begin{tikzpicture}[node distance=9mm]
-      \node[pptbox, minimum width=3.3cm] (in) {$P$ and $Q$ agree\\through precision $n$};
-      \node[pptbox, right=of in, minimum width=3.3cm] (fun) {higher-order\\function $F$};
-      \node[pptbox, right=of fun, minimum width=3.3cm] (out) {$F(P)$ and $F(Q)$ agree\\through precision $n$};
-      \draw[pptarrow] (in) -- (fun);
-      \draw[pptarrow] (fun) -- (out);
+    \begin{tikzpicture}[
+      archbox/.style={draw=black!30, rounded corners=2pt, align=center,
+        text width=2.65cm, minimum height=1.40cm, inner sep=6pt},
+      dep/.style={->, >=Stealth, line width=0.9pt, draw=black!62},
+      deplabel/.style={font=\scriptsize, fill=white, inner sep=2pt, text=black!62}
+    ]
+      % Fixed coordinates keep the four layers aligned.
+      \coordinate (foundation) at (1.2,2.1);
+      \coordinate (semantic) at (5.35,3.35);
+      \coordinate (typed) at (5.35,0.85);
+      \coordinate (proof) at (10.2,2.1);
+
+      \node[archbox, fill=black!3] at (foundation) {
+        \textbf{Foundations}\\[3pt]
+        \texttt{OFE}\quad\texttt{SProp}\\
+        \texttt{Heap}};
+      \node[archbox, fill=ResourceBlue!7] at (semantic) {
+        \textbf{Assertion semantics}\\[3pt]
+        \texttt{IProp}\\
+        \texttt{Connectives}};
+      \node[archbox, fill=PKURed!6] at (typed) {
+        \textbf{Typed DSL}\\[3pt]
+        \texttt{Ty}\quad\texttt{Expr}\\
+        \texttt{Denote}\quad\texttt{Elab}};
+      \node[archbox, fill=PersistentGreen!7] at (proof) {
+        \textbf{Proof mode}\\[3pt]
+        \texttt{Context}\quad\texttt{Rules}\\
+        \texttt{Tactics}\quad\texttt{Pretty}};
+
+      % Draw labels after the filled boxes so they remain visible.
+      \draw[dep] (2.58,2.48) -- node[deplabel,above,sloped]{\texttt{Heap/SProp}} (3.97,3.03);
+      \draw[dep] (2.58,1.72) -- node[deplabel,below,sloped]{\texttt{OFE}} (3.97,1.17);
+      \draw[dep] (5.35,2.62) -- node[deplabel,right]{\texttt{Connectives}} (5.35,1.58);
+      \draw[dep] (6.73,3.03) -- node[deplabel,above,sloped]{\texttt{Rules}} (8.82,2.48);
+      \draw[dep] (6.73,1.17) -- node[deplabel,below,sloped]{\texttt{Denote}} (8.82,1.72);
     \end{tikzpicture}
   \end{center}
 
   \vfill
-  \begin{center}
-    $F$ cannot manufacture information at a precision it was not given.
-  \end{center}
+  \begin{itemize}
+    \item \texttt{IProp} and \texttt{Connectives} define assertion semantics;
+    \item rules prove context transformations; tactics assemble the proofs.
+  \end{itemize}
 \end{frame}
 
-\begin{frame}{What MPSL does---and deliberately does not do}
+\begin{frame}{IProp adds resources to step propositions}
+  \minorhead{Assertion domain}
+  \keyeq{\IProp(\mathit{Loc},\mathit{Val})
+    = \left\{P : \Heap(\mathit{Loc},\mathit{Val})\to\mathsf{SProp}
+      \mid P\text{ is heap-monotone}\right\}}
+
+  \begin{itemize}
+    \item $P(h)$: a downward-closed proposition over observation steps;
+    \item $h_1\sqsubseteq h_2$: resource extension;
+    \item heap monotonicity:
+  \end{itemize}
+
+  \keyeq{h_1\sqsubseteq h_2\ \land\ n\in P(h_1)
+    \quad\Longrightarrow\quad n\in P(h_2)}
+
+  \minorhead{Formula interpretation}
+  \[
+    \Sem{-} : \mathsf{Formula}(\mathit{Loc},\mathit{Val})
+      \longrightarrow \IProp(\mathit{Loc},\mathit{Val}).
+  \]
+\end{frame}
+
+\begin{frame}{Soundness is semantic step inclusion}
+  \minorhead{Semantic entailment}
+  \keyeq{P\Entails_{\!i}Q
+    \quad\Longleftrightarrow\quad
+    \forall h,n,\; n\in P(h)\Rightarrow n\in Q(h)}
+
+  \minorhead{Formula judgment}
+  \[
+    P\Entails Q
+    \quad\Longleftrightarrow\quad
+    \Sem{P}\Entails_{\!i}\Sem{Q}.
+  \]
+
+  \minorhead{Soundness target}
+  \keyeq{P\Entails Q
+    \quad\Longrightarrow\quad
+    \forall h,n,\;n\in\Sem{P}(h)\Rightarrow n\in\Sem{Q}(h)}
+
+  \begin{itemize}
+    \item proof-mode rules are theorems over \texttt{IProp.Entails};
+    \item tactics compose theorem applications; Lean checks the proof term.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Why a proof mode?}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.47\textwidth}
+      \minorhead{Meta-level goal}
+      \[
+        H_1:\phi_1,\ldots,H_n:\phi_n
+        \;\vdash_{\mathrm{Lean}}\;\psi
+      \]
+      \begin{itemize}
+        \item named hypotheses;
+        \item local context transformations;
+        \item \texttt{intro}, \texttt{split}, \texttt{exact}.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.49\textwidth}
+      \minorhead{Embedded entailment}
+      \[
+        \vdash_{\mathrm{Lean}}\;(P\Entails Q)
+      \]
+      \begin{itemize}
+        \item $P$: one object-language term;
+        \item subformulas of $P$: unnamed;
+        \item Lean sees \texttt{IProp.Entails}.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+  \minorhead{Proof-mode representation}
+  \keyeq{\Gamma_p;\Gamma_s\vdash_{\texttt{MPSL}}Q
+    \quad:=\quad\Sem{\Gamma_p;\Gamma_s}\Entails_{\!i}Q}
+
+  \begin{itemize}
+    \item names expose object-logic structure to goal-directed tactics.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Persistent and spatial proof contexts}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.51\textwidth}
+\begin{lstlisting}[style=leancode]
+x : Nat
+hEq : x = x
+|- 
+hSpec : (*@$\Always$@*) `P
+-------------------------- (*@$\Always$@*)
+hCell : loc(0) |-> val("v")
+-------------------------- (*@$\Sep$@*)
+`P (*@$\Sep$@*) (loc(0) |-> val("v"))
+\end{lstlisting}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \begin{itemize}
+        \item pure context: Lean variables and propositions;
+        \item $\Gamma_p$: persistent context, reusable;
+        \item $\Gamma_s$: spatial context, explicitly partitioned;
+        \item names are unique across both MPSL contexts.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.25cm}
+  \keyeq{\Sem{\Gamma_p;\Gamma_s}
+    =\Always(P_1\land\cdots\land P_m)\Sep(Q_1\Sep\cdots\Sep Q_n)}
+\end{frame}
+
+\begin{frame}{Tactic effects: enter and decompose}
+  \minorhead{\texttt{mintro h}}
+  \keyeq{P\Entails Q
+    \quad\Longrightarrow\quad
+    \varnothing\;;\;h:P\ \vdash_{\texttt{MPSL}} Q}
+
+  \minorhead{\texttt{mdestruct h as hP hQ} \;for spatial $P\Sep Q$}
+  \keyeq{\Gamma_p\;;\;h:P\Sep Q,\Gamma_s\ \vdash_{\texttt{MPSL}} R
+    \quad\Longrightarrow\quad
+    \Gamma_p\;;\;h_P:P,h_Q:Q,\Gamma_s\ \vdash_{\texttt{MPSL}} R}
+
+  \minorhead{\texttt{mpersistent h}}
+  \keyeq{\Gamma_p\;;\;h:P,\Gamma_s\ \vdash_{\texttt{MPSL}} R
+    \quad\Longrightarrow\quad
+    \begin{cases}
+      P\Entails_{\!i}\Always P,\\
+      h:P,\Gamma_p\;;\;\Gamma_s\ \vdash_{\texttt{MPSL}} R.
+    \end{cases}}
+\end{frame}
+
+\begin{frame}{Tactic effects: branch the goal}
+  \minorhead{\texttt{msplit}}
+  \keyeq{\Gamma_p\;;\;\Gamma_s\ \vdash_{\texttt{MPSL}} P\land Q
+    \quad\Longrightarrow\quad
+    \begin{cases}
+      \Gamma_p\;;\;\Gamma_s\ \vdash_{\texttt{MPSL}} P,\\
+      \Gamma_p\;;\;\Gamma_s\ \vdash_{\texttt{MPSL}} Q.
+    \end{cases}}
+
+  \minorhead{\texttt{msep [hQ]}}
+  \keyeq{\Gamma_p\;;\;h_P:P,h_Q:Q\ \vdash_{\texttt{MPSL}} Q\Sep P
+    \quad\Longrightarrow\quad
+    \begin{cases}
+      \Gamma_p\;;\;h_Q:Q\ \vdash_{\texttt{MPSL}} Q,\\
+      \Gamma_p\;;\;h_P:P\ \vdash_{\texttt{MPSL}} P.
+    \end{cases}}
+
+  \begin{itemize}
+    \item \texttt{msplit}: both branches keep the contexts;
+    \item \texttt{msep}: persistent context copied, spatial context partitioned.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Tactic effects: close and focus}
+  \minorhead{\texttt{mexact h}}
+  \keyeq{\Gamma_p\;;\;h:P,\Gamma_s\ \vdash_{\texttt{MPSL}} P
+    \quad\Longrightarrow\quad\checkmark}
+
+  \minorhead{\texttt{mapply hImp hP}}
+  \keyeq{\Gamma_p\;;\;h_{\mathrm{Imp}}:P\Rightarrow Q,h_P:P,\Gamma_s
+    \ \vdash_{\texttt{MPSL}} Q
+    \quad\Longrightarrow\quad\checkmark}
+
+  \minorhead{\texttt{mframe hP}}
+  \keyeq{\Gamma_p\;;\;h_P:P,\Gamma_s\ \vdash_{\texttt{MPSL}} P\Sep Q
+    \quad\Longrightarrow\quad
+    \Gamma_p\;;\;\Gamma_s\ \vdash_{\texttt{MPSL}} Q}
+
+  \begin{itemize}
+    \item other closers: \texttt{massumption}, \texttt{mtruth},
+      \texttt{mfalse h}, \texttt{mrefl}.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Tactic effects: binders and later}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.49\textwidth}
+      \minorhead{\texttt{mforall x}}
+      \[
+        \begin{aligned}
+        &\Delta\mid\Gamma_p;\Gamma_s\vdash
+          \forall\,x:\tau.\,P(x)\\
+        &\quad\Longrightarrow
+          \Delta,x:\Sem{\tau}\mid\Gamma_p;\Gamma_s\vdash P(x)
+        \end{aligned}
+      \]
+
+      \minorhead{\texttt{mexists t}}
+      \[
+        \begin{aligned}
+        &\Delta\mid\Gamma_p;\Gamma_s\vdash
+          \exists\,x:\tau.\,P(x)\\
+        &\quad\Longrightarrow
+          \Delta\mid\Gamma_p;\Gamma_s\vdash P(t)
+        \end{aligned}
+      \]
+
+      \minorhead{\texttt{mopenexists h as x hx}}
+      \[
+        \begin{aligned}
+        &\Delta\mid\Gamma_p;h:\exists\,x:\tau.\,P(x),\Gamma_s\vdash Q\\
+        &\quad\Longrightarrow
+        \Delta,x:\Sem{\tau}\mid\Gamma_p;h_x:P(x),\Gamma_s\vdash Q
+        \end{aligned}
+      \]
+    \end{column}
+    \begin{column}{0.47\textwidth}
+      \minorhead{\texttt{mlater}}
+      \[
+        \Gamma_p;\Gamma_s\vdash\Later P
+        \Longrightarrow
+        \Gamma_p;\Gamma_s\vdash P
+      \]
+
+      \minorhead{\texttt{mopenlater h as hP}}
+      \[
+        \begin{aligned}
+        &\Gamma_p;h:\Later P,\Gamma_s\vdash\Later Q\\
+        &\quad\Longrightarrow
+        \Gamma_p;h_P:P,\Gamma_s\vdash Q
+        \end{aligned}
+      \]
+
+      \minorhead{\texttt{mopen h as hP}}
+      \[
+        \begin{aligned}
+        &h:\Always P,\Gamma_p;\Gamma_s\vdash Q\\
+        &\quad\Longrightarrow
+        h_P:P,\Gamma_p;\Gamma_s\vdash Q
+        \end{aligned}
+      \]
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Proof: spatial partition}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.60\textwidth}
+\begin{lstlisting}[style=leancode]
+example (P Q : Formula Nat String) :
+    mpsl{ `P (*@$\Sep$@*) `Q } (*@$\Entails$@*)
+      mpsl{ `Q (*@$\Sep$@*) `P } := by
+  mintro h
+  mdestruct h as hP hQ
+  msep [hQ]
+  (*@$\mathord{\cdot}$@*) mexact hQ
+  (*@$\mathord{\cdot}$@*) mexact hP
+\end{lstlisting}
+    \end{column}
+    \begin{column}{0.36\textwidth}
+      \begin{itemize}
+        \item \texttt{mdestruct}: expose $h_P$, $h_Q$;
+        \item \texttt{msep [hQ]}: $h_Q$ left;
+        \item remainder $h_P$ right.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+  \vfill
+  \muted{A spatial name cannot be assigned to both branches.}
+\end{frame}
+
+\begin{frame}[fragile]{Proof: existential}
+  \[
+    \bigl((\exists\,x : \mathsf{loc}.\;x=_{\mathsf{loc}}x)\Sep R\bigr)
+    \Entails
+    \exists\,x : \mathsf{loc}.\;R\Sep(x=_{\mathsf{loc}}x)
+  \]
+
+\begin{lstlisting}[style=leancode]
+mintro h
+mdestruct h as hExists hR
+mopenexists hExists as x hx
+mexists $! x
+msep [hR]
+(*@$\mathord{\cdot}$@*) mexact hR
+(*@$\mathord{\cdot}$@*) mexact hx
+\end{lstlisting}
+
+  \begin{itemize}
+    \item \texttt{mopenexists}: witness enters Lean's pure context;
+    \item \texttt{mexists \$! x}: embed that witness back into the DSL.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Proof: persistent reuse}
+\begin{lstlisting}[style=leancode]
+example (P Q : Formula Nat String) :
+    mpsl{ ((*@$\Always$@*) `P) (*@$\Sep$@*) `Q } (*@$\Entails$@*)
+      mpsl{ `P (*@$\Sep$@*) (`P (*@$\Sep$@*) `Q) } := by
+  mintro h
+  mdestruct h as hBox hQ
+  mpersistent hBox
+  (*@$\mathord{\cdot}$@*) exact IProp.always_idem_intro P.denote
+  (*@$\mathord{\cdot}$@*) mopen hBox as hP
+    msep []
+    (*@$\mathord{\cdot}$@*) mexact hP
+    (*@$\mathord{\cdot}$@*) msep []
+      (*@$\mathord{\cdot}$@*) mexact hP
+      (*@$\mathord{\cdot}$@*) mexact hQ
+\end{lstlisting}
+
+  \begin{itemize}
+    \item \texttt{mpersistent} requires a persistence certificate;
+    \item persistent $h_P$ is available in both spatial branches.
+  \end{itemize}
+\end{frame}
+
+\section{Summary}
+
+\begin{frame}{Implemented and current scope}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
       \minorhead{Implemented}
       \begin{itemize}
         \item intrinsically typed higher-order DSL;
-        \item affine separation logic over partial heaps;
-        \item $\Always$, $\Later$, quantifiers, equality, and points-to;
-        \item OFEs and non-expansive function spaces;
-        \item sound named proof mode and InfoView rendering.
+        \item exclusive partial heaps and $l\mapsto v$;
+        \item affine BI, equality, and quantifiers;
+        \item $\Always$, $\Later$, OFEs, and \texttt{NEFun};
+        \item named contexts, proof-mode tactics, InfoView.
       \end{itemize}
     \end{column}
-    \begin{column}{0.47\textwidth}
-      \minorhead{Outside the current scope}
+    \begin{column}{0.48\textwidth}
+      \minorhead{Not implemented}
       \begin{itemize}
-        \item program syntax and operational semantics;
+        \item programs and operational semantics;
         \item weakest preconditions and Hoare triples;
-        \item invariants, ghost state, and generic resources;
-        \item guarded fixed points and recursive predicates.
+        \item generic resources and ghost state;
+        \item invariants and view shifts;
+        \item recursive predicates and fixed points.
       \end{itemize}
     \end{column}
   \end{columns}
-
-  \vfill
-  \begin{center}
-    \large The goal is a \kw{small, inspectable semantic core}, not a full Iris replacement.
-  \end{center}
 \end{frame}
 
-\begin{frame}{Three ideas to take away}
-  \vspace{0.4cm}
+\begin{frame}{Three points to retain}
   \begin{enumerate}
-    \item \textbf{Assertions can describe ownership, not only truth.}
-
-      $P\Sep Q$ splits the available resource into disjoint pieces.
-
-    \item \textbf{Step indexing is a diagram of finite approximations.}
-
-      $\Later$ is its shift; L\"ob induction is ordinary induction on the index.
-
-    \item \textbf{MPSL connects notation to a kernel-checked semantics.}
-
-      Typed elaboration, proved logical laws, and a resource-aware proof mode form one checked pipeline.
+    \item \textbf{Separation tracks ownership.}
+      \quad $P\Sep Q$ partitions the spatial resource.
+    \item \textbf{Step indexing tracks finite observation.}
+      \quad \texttt{SProp}, OFEs, \texttt{NEFun}, and $\Later$.
+    \item \textbf{Lean tracks the proof.}
+      \quad intrinsic syntax, semantic rules, kernel checking.
   \end{enumerate}
 
-  \vfill
+  \vspace{0.65cm}
   \begin{center}
-    \Large\textcolor{PKURed}{Truth, ownership, and approximation---checked together.}
+    \Large\textcolor{PKURed}{Higher-order, step-indexed entailments in a small checked core.}
   \end{center}
-\end{frame}
-
-\begin{frame}
-  \vspace{2.25cm}
-  {\Huge\bfseries\textcolor{PKURed}{Thank You}\par}
-  \vspace{0.45cm}
-  {\Large Questions and Comments Welcome\par}
 \end{frame}
 
 \end{document}
