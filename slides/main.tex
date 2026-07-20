@@ -1,0 +1,83 @@
+%!LW recipe=latexmk
+% !TEX root = main.tex
+%# -*- coding:utf-8 -*-
+
+\PassOptionsToPackage{quiet}{fontspec}
+\PassOptionsToPackage{fontset=fandol}{ctex}
+\PassOptionsToPackage{dvipsnames}{xcolor}
+\documentclass[10pt,aspectratio=169]{beamer}
+\usepackage{pkubeamer}
+
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{ragged2e}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\usepackage{mathpartir}
+\usepackage{pifont}
+\usepackage{tikz}
+\usetikzlibrary{fit,arrows.meta,backgrounds,positioning,calc,shapes.geometric,decorations.pathreplacing}
+\usepackage{listings}
+\usepackage{listings-ocaml}
+\usepackage{listings-c}
+
+\input{macro}
+
+\graphicspath{{./figures/}}
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{4pt}
+
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
+\newcommand{\kw}[1]{\textcolor{PKURed}{\textbf{#1}}}
+\newcommand{\slidelead}[1]{{\large\bfseries\textcolor{black!86}{#1}}\par\vspace{0.45em}}
+\newcommand{\minorhead}[1]{{\normalsize\bfseries\textcolor{black!78}{#1}}\par\vspace{0.25em}}
+
+\tikzset{
+  pptbox/.style={draw, rounded corners=2pt, align=center, font=\scriptsize,
+    inner xsep=6pt, inner ysep=4pt, minimum height=0.58cm, fill=white},
+  pptarrow/.style={->, thick, >=Stealth, draw=black!65},
+  smallnote/.style={font=\scriptsize, text=black!58}
+}
+
+\title[MPSL]{An DSL for Step-indexed Higher-order Separation Logic in Lean}
+\subtitle{Project Report for ZJU AI4Math Summer School}
+\author[Siyuan Zhu et al.]{Siyuan Zhu \and Qihao Lian}
+\institute[Peking University]{School of Computer Science, Peking University}
+\date{July 2026}
+
+\begin{document}
+
+\begin{frame}
+  \vspace{1.35cm}
+
+  {\Huge\bfseries\textcolor{PKURed}{An DSL for Step-indexed \\Higher-order Separation Logic in Lean}\par}
+  \vspace{1.50cm}
+  {\normalsize Siyuan Zhu and Qihao Lian\par}
+  \vspace{0.10cm}
+  {\normalsize School of Computer Science, Peking University\par}
+  \vspace{0.45cm}
+  {\normalsize July 2026\par}
+\end{frame}
+
+
+
+\section{Background}
+
+
+
+\section{References}
+\begin{frame}[allowframebreaks]{References}
+  \footnotesize
+  \reference
+\end{frame}
+
+\begin{frame}
+  \vspace{2.25cm}
+  {\Huge\bfseries\textcolor{PKURed}{Thank You}\par}
+  \vspace{0.45cm}
+  {\Large Questions and Comments Welcome\par}
+\end{frame}
+
+\end{document}

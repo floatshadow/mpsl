@@ -1,0 +1,259 @@
+% Copyright 2009 by Pim Vullers
+% Modified 2023-08-22 by [光头哥]
+% Modified 2025-07-10 by [PhilFan]
+%
+% This file may be distributed and/or modified
+%
+% 1. under the LaTeX Project Public License (LPPL), either version 1.3c
+%    or (at your option) any later version.
+% 2. under the GNU Public License (GPL), either version 3
+%    or (at your option) any later version.
+%
+% This work is derived from the original `zju` package (by 光头哥).
+% The modified version is identified by the name '[pkubeamer]'
+% to avoid confusion with the original work.
+
+% ============================================================
+% 1. 宏包导入与基础设置
+% ============================================================
+
+\ProvidesPackage{pkubeamer}
+
+% --- 字体与中文支持 ---
+\usefonttheme[onlymath]{serif}                % 数学公式使用衬线字体
+\RequirePackage{fontspec}                     % 字体选择
+\RequirePackage{xeCJK}                        % XeLaTeX 中文支持
+\RequirePackage{ctex}                         % 中文支持
+
+% --- 数学与符号 ---
+\RequirePackage{amsmath,amsfonts,amssymb,bm}  % 数学公式相关
+
+% --- 图形与超链接 ---
+\RequirePackage{graphicx}                     % 图片插入
+\RequirePackage{hyperref,url}                 % 超链接与网址
+
+% --- 其他常用宏包 ---
+\RequirePackage{metalogo}                     % \XeLaTeX 等 logo
+\RequirePackage{lipsum}                       % 生成填充文本
+\RequirePackage{listings}                     % 代码高亮
+\RequirePackage{xcolor}                        % 颜色支持，dvipsnames 选项在 .tex 中通过 \PassOptionsToPackage 传入
+\RequirePackage{subcaption}                   % 并排图片
+\RequirePackage{multicol}                     % 多栏环境
+\RequirePackage{caption}                      % 图表标题定制
+\RequirePackage{fancyhdr}                     % 页眉页脚
+\RequirePackage{tcolorbox}                    % 彩色文本框
+
+% --- 中文标点句号替换 ---
+\catcode`\。=\active
+\newcommand{。}{．} % 将“。”替换为“.”，科技文献规范
+
+% ============================================================
+% 2. Beamer 主题继承与基本主题设置
+% ============================================================
+
+% --- 继承现有主题 ---
+\useoutertheme{split}         % 分割式头部和尾部布局
+\usecolortheme{whale}         % 外部元素背景色
+\useinnertheme{rounded}       % 内部元素圆角
+\usecolortheme{orchid}        % 内部元素前景色
+
+% ============================================================
+% 3. Beamer 内部样式自定义
+% ============================================================
+
+% --- 列表项目符号样式 ---
+\beamertemplateballitem
+% 启用 ballitem 风格（可注释掉不用）
+
+\setbeamertemplate{itemize items}[circle]
+% itemize 项目符号样式，可选：[circle]（圆圈）、[square]（方块）、[triangle]（三角）、[ball]（小球）、[default]（默认）
+
+\setbeamertemplate{enumerate items}[circle]
+% enumerate 编号样式，可选：[circle]（圆圈）、[square]（方块）、[default]（数字）、[ball]（小球）
+
+\setbeamertemplate{sections/subsections in toc}[default]
+% 目录章节样式，可选：[default]、[ball]、[square]、[circle]、[sections numbered]
+
+\setbeamertemplate{blocks}[rounded]
+% block 环境样式，可选：[rounded]（圆角）、[default]、[shadowed]（阴影）
+
+\setbeamertemplate{section in toc}[square]
+% 目录 section 符号样式，可选：[square]（方块）、[ball]（小球）、[circle]（圆圈）、[default]
+
+\setbeamertemplate{title page}[default][colsep=-4bp,rounded=true]
+% 标题页样式，可选：[default]、[plain]，可加参数如[colsep=...]、[rounded=true/false]
+
+\setbeamertemplate{part page}[default][colsep=-4bp,rounded=true]
+% part 页样式，可选：[default]、[plain]，可加参数如[colsep=...]、[rounded=true/false]
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamersize{text margin left=9mm,text margin right=9mm}
+
+% ============================================================
+% 4. 外部主题细节调整（Radboud 风格）
+% ============================================================
+
+% --- 背景设置：清爽 presentation 风格，去掉大号水印背景 ---
+\setbeamercolor{background canvas}{bg=white}
+
+% --- 结构色设置 ---
+\definecolor{PKURed}{RGB}{154,0,0}
+\definecolor{PKUDark}{RGB}{34,24,21}
+
+\setbeamertemplate{itemize item}{\textcolor{PKURed}{\scriptsize$\bullet$}}
+\setbeamertemplate{itemize subitem}{\textcolor{PKURed}{\scriptsize$\circ$}}
+
+\usecolortheme[RGB={154,0,0}]{structure} % 主色调：北大红
+\setbeamercolor{section in head/foot}{fg=PKUDark,bg=white}
+\setbeamercolor{subsection in head/foot}{fg=PKURed,bg=white}
+\setbeamercolor{author in head/foot}{fg=PKUDark,bg=white}
+\setbeamercolor{title in head/foot}{fg=PKURed,bg=white}
+
+% --- 顶部颜色与渐变说明 ---
+% 1. 结构色通过 \usecolortheme[RGB={154,0,0}]{structure} 定义
+% 2. frametitle 区域颜色由下两行决定
+\setbeamerfont{frametitle}{size=\Large,series=\bfseries}
+\setbeamercolor{frametitle}{fg=PKURed,bg=white}
+\setbeamercolor{frametitle right}{fg=PKUDark,bg=white}
+% 4. 如需自定义顶部颜色，可用如下命令：
+%    \setbeamercolor{frametitle}{bg=PKURed,fg=white}
+%    \setbeamercolor{frametitle right}{bg=PKUDark,fg=white}
+
+% ============================================================
+% 5. 页脚与页眉（footline/headline）自定义
+% ============================================================
+
+% --- 页脚 footline: 当前 section | 页码 ---
+\newcommand{\pku@footertitle}{}
+\newcommand{\pkufootertitle}[1]{\gdef\pku@footertitle{#1}}
+\newcommand{\pku@insertfootertitle}{%
+  \ifx\pku@footertitle\@empty
+    \insertsectionhead
+  \else
+    \pku@footertitle
+  \fi
+}
+
+\defbeamertemplate*{footline}{pkubeamer theme}{%
+  \leavevmode%
+  \hbox to\paperwidth{%
+    \hspace{0.85cm}%
+    {\scriptsize\textcolor{PKUDark!68}{\pku@insertfootertitle}}%
+    \hfill%
+    {\scriptsize\bfseries\textcolor{PKURed!82!PKUDark}{\insertframenumber/\inserttotalframenumber}}%
+    \hspace{0.85cm}}%
+  \vspace{0.22cm}%
+}
+
+% --- headline 区域颜色切换命令 ---
+\newcommand{\pkusectioncolor}[1]{%
+  \def\pku@headlinecolor{section in head/foot}% 默认深色
+  \edef\pku@tmpa{#1}%
+  \ifx\pku@tmpa\@empty\else
+    \ifx\pku@tmpa\pku@red
+      \def\pku@headlinecolor{subsection in head/foot}%
+    \fi
+    \ifx\pku@tmpa\pku@blue
+      \def\pku@headlinecolor{subsection in head/foot}%
+    \fi
+  \fi
+}
+\let\zjusectioncolor\pkusectioncolor
+\def\pku@red{red}
+\def\pku@blue{blue}
+% 默认 headline 颜色
+
+% --- 页眉 headline: 右上角保留北大文字与 logo，不使用条带导航 ---
+\newcommand{\pku@headerlogos}{%
+  \includegraphics[height=0.54cm]{figures/pku-header-logo.png}%
+}
+
+\setbeamertemplate{background}{%
+  \vbox to\paperheight{%
+    \vskip0.52cm%
+    \hbox to\paperwidth{\hfill\pku@headerlogos\hspace{0.72cm}}%
+    \vfil%
+  }%
+}
+\setbeamertemplate{headline}{}
+
+% --- frametitle 样式 ---
+\defbeamertemplate*{frametitle}{pkubeamer theme}{%
+  \vspace{0.34cm}%
+  \insertframetitle\par%
+  \ifx\insertframesubtitle\@empty\else
+    {\usebeamerfont*{framesubtitle}\usebeamercolor[fg]{framesubtitle}\insertframesubtitle\par}%
+  \fi
+  \vspace{0.30cm}%
+}
+
+% --- section title page: 新节进入提示页 ---
+\setbeamerfont{section page title}{size=\Huge,series=\bfseries}
+\setbeamerfont{section page number}{size=\fontsize{42}{46}\selectfont,series=\bfseries}
+\setbeamercolor{section page title}{fg=PKURed}
+\setbeamercolor{section page number}{fg=PKURed!12}
+
+\defbeamertemplate*{section page}{pkubeamer theme}{%
+  \vspace{1.72cm}%
+  \hbox{%
+    \begin{minipage}[t]{0.14\textwidth}
+      \raggedleft
+      {\usebeamerfont{section page number}\usebeamercolor[fg]{section page number}%
+        \ifnum\value{section}<10 0\fi\insertsectionnumber\par}%
+    \end{minipage}%
+    \hspace{0.06\textwidth}%
+    \begin{minipage}[t]{0.72\textwidth}
+      \vspace{0.36cm}%
+      {\color{PKURed}\rule{1.26cm}{1.6pt}\par}%
+      \vspace{0.30cm}%
+      {\usebeamerfont{section page title}\usebeamercolor[fg]{section page title}\insertsectionhead\par}%
+      \vspace{0.34cm}%
+      {\color{PKUDark!30}\rule{0.62\textwidth}{0.4pt}\par}%
+    \end{minipage}%
+  }%
+}
+
+\AtBeginSection[]{%
+  \begin{frame}
+    \sectionpage
+  \end{frame}
+}
+
+% ============================================================
+% 6. 代码高亮与语言支持
+% ============================================================
+
+\lstset{
+    language=Tex,                                 % 代码语言
+    backgroundcolor=\color{white}, 
+    basicstyle=\ttfamily,                         % 字体族
+    breaklines=true,                              % 自动换行
+    keywordstyle=\bfseries\color{PKURed!85!black}, % 关键字样式
+    morekeywords={},                              % 额外关键字
+    emph={self},                                  % 强调词
+    emphstyle=\bfseries\color{PKURed},            % 强调词样式
+    commentstyle=\itshape\color{black!50!white},  % 注释样式
+    stringstyle=\bfseries\color{PineGreen!90!black}, % 字符串样式
+    columns=flexible,
+    numbers=left,                                 % 行号左侧
+    numbersep=2em,                                % 行号间距
+    numberstyle=\footnotesize,                    % 行号字体
+    frame=shadowbox,                              % 边框
+    rulesepcolor=\color{red!20!green!20!blue!20}, % 分隔线颜色
+    % framesep=1em                                % 代码与边框距离
+    showstringspaces=false
+}
+
+
+% ============================================================
+% 7. 参考文献样式
+% ============================================================
+
+\setbeamertemplate{bibliography item}[text]
+\newcommand{\reference}{
+    %\nocite{*}   % 列出 bib 文件中所有参考文献
+    \bibliographystyle{unsrt} % 参考文献格式
+    \begin{center}            % 居中显示
+    	\bibliography{main} % 生成参考文献列表
+    \end{center}
+}
