@@ -23,9 +23,11 @@ syntax (name := mrefl) "mrefl" : tactic
 syntax (name := msymm) "msymm " ident : tactic
 syntax (name := mtrans) "mtrans " ident ident : tactic
 syntax (name := mexistsDsl) "mexists " mpslTerm : tactic
+syntax (name := mexistsPure) "mexists" "$!" term : tactic
 syntax (name := mforall) "mforall " ident : tactic
 syntax (name := mopenExists) "mopenexists" ident "as" ident ident : tactic
 syntax (name := mspecializeDsl) "mspecialize " ident " at " mpslTerm " as " ident : tactic
+syntax (name := mspecializePure) "mspecialize" ident "at" "$!" term "as" ident : tactic
 syntax (name := malways) "malways" : tactic
 syntax (name := mopenAlways) "mopen" ident "as" ident : tactic
 syntax (name := mlater) "mlater" : tactic
@@ -260,6 +262,10 @@ macro_rules (kind := mexistsDsl)
       `(tactic| apply MPSL.ProofMode.existsIntro
         (MPSL.Expr.denote mpsl{ $witness } MPSL.Env.nil))
 
+macro_rules (kind := mexistsPure)
+  | `(tactic| mexists $! $witness:term) =>
+      `(tactic| apply MPSL.ProofMode.existsIntro $witness)
+
 macro_rules (kind := mforall)
   | `(tactic| mforall $name:ident) =>
       `(tactic| apply MPSL.ProofMode.forallIntro; intro $(name):ident)
@@ -278,11 +284,21 @@ macro_rules (kind := mspecializeDsl)
   | `(tactic| mspecialize $source:ident at $witness:mpslTerm as $name:ident) => do
       let sourceLabel := Lean.quote source.getId.toString
       let label := Lean.quote name.getId.toString
-      `(tactic| _mpsl_guard_replace $source [$name]; first
+      `(tactic| _mpsl_guard_fresh $name; first
         | apply MPSL.ProofMode.forallElimPersistent $sourceLabel $label
             (MPSL.Expr.denote mpsl{ $witness } MPSL.Env.nil) (by rfl)
         | apply MPSL.ProofMode.forallElimSpatial $sourceLabel $label
             (MPSL.Expr.denote mpsl{ $witness } MPSL.Env.nil) (by rfl))
+
+macro_rules (kind := mspecializePure)
+  | `(tactic| mspecialize $source:ident at $! $witness:term as $name:ident) => do
+      let sourceLabel := Lean.quote source.getId.toString
+      let label := Lean.quote name.getId.toString
+      `(tactic| _mpsl_guard_fresh $name; first
+        | apply MPSL.ProofMode.forallElimPersistent
+            $sourceLabel $label $witness (by rfl)
+        | apply MPSL.ProofMode.forallElimSpatial
+            $sourceLabel $label $witness (by rfl))
 
 macro_rules (kind := malways)
   | `(tactic| malways) => `(tactic| apply MPSL.ProofMode.alwaysIntro)

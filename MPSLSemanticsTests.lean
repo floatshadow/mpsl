@@ -176,6 +176,55 @@ example :
   mspecialize h at loc(0) as hzero
   mexact hzero
 
+-- Universal introduction extends Lean's pure context and preserves all resources.
+example (P : Formula Location Value) :
+    P ⊢ mpsl{ ∀ _x : loc, `P } := by
+  mintro hP
+  mforall x
+  mexact hP
+
+-- `$!` passes a variable from the Lean pure context to an object-logic quantifier.
+example :
+    (mpsl{ ∀ x : loc, x =[loc] x } : Formula Location Value) ⊢
+      mpsl{ ∀ y : loc, y =[loc] y } := by
+  mintro hAll
+  mforall y
+  mspecialize hAll at $! y as hy
+  mexact hy
+
+-- Additive branches each receive the original spatial universal hypothesis.
+example :
+    (mpsl{ ∀ x : loc, x =[loc] x } : Formula Location Value) ⊢
+      mpsl{ (loc(0) =[loc] loc(0)) ∧ (loc(1) =[loc] loc(1)) } := by
+  mintro hAll
+  msplit
+  · mspecialize hAll at loc(0) as hzero
+    mexact hzero
+  · mspecialize hAll at loc(1) as hone
+    mexact hone
+
+example :
+    (mpsl{ True } : Formula Location Value) ⊢
+      mpsl{ ∀ y : loc, ∃ x : loc, x =[loc] y } := by
+  mintro h
+  mforall y
+  mexists $! y
+  mrefl
+
+-- A persistent universal is retained while named instances are added persistently.
+example :
+    (mpsl{ □ (∀ x : loc, x =[loc] x) } : Formula Location Value) ⊢
+      mpsl{ (loc(0) =[loc] loc(0)) ∧ (loc(1) =[loc] loc(1)) } := by
+  mintro hBox
+  mpersistent hBox
+  · exact IProp.always_idem_intro _
+  · mopen hBox as hAll
+    mspecialize hAll at loc(0) as hzero
+    mspecialize hAll at loc(1) as hone
+    msplit
+    · mexact hzero
+    · mexact hone
+
 -- Existential elimination also focuses a named hypothesis within the spatial list.
 example (R : Formula Location Value) :
     mpsl{ (∃ x : loc, x =[loc] x) ∗ `R } ⊢ R := by
@@ -183,6 +232,14 @@ example (R : Formula Location Value) :
   mdestruct h as hExists hR
   mopenexists hExists as x hx
   mexact hR
+
+example :
+    (mpsl{ ∃ x : loc, x =[loc] x } : Formula Location Value) ⊢
+      mpsl{ ∃ y : loc, y =[loc] y } := by
+  mintro hExists
+  mopenexists hExists as x hx
+  mexists $! x
+  mexact hx
 
 example :
     (mpsl{ loc(0) =[loc] loc(1) } : Formula Location Value) ⊢

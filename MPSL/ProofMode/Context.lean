@@ -309,7 +309,11 @@ inductive Zone where
   | spatial
   deriving DecidableEq, Repr
 
-/-- Iris-style proof-mode context with reusable and resource-owning zones. -/
+/-- Iris-style object-logic context with reusable and resource-owning zones.
+
+Lean local variables and `Prop` hypotheses form the pure context. They are
+deliberately not stored here and have no contribution to `denote`.
+-/
 structure Context (Loc : Type u) (Val : Type v) where
   persistent : Environment Loc Val
   spatial : Environment Loc Val

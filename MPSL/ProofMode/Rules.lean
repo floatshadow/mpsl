@@ -447,19 +447,31 @@ theorem forallIntro {Witness : Type w} {context : Context Loc Val}
     (forall witness, Valid context (body witness)) -> Valid context (IProp.forall_ body) :=
   IProp.forall_intro
 
+/-- Specializing a persistent universal retains the general specification.
+
+```text
+Γp, H : ∀ x, Φ x, Ht : Φ t ; Γs ⊢ R
+──────────────────────────────────────
+       Γp, H : ∀ x, Φ x ; Γs ⊢ R
+```
+-/
 theorem forallElimPersistent (source specializedName : String) {Witness : Type w}
-    (witness : Witness) {context updated : Context Loc Val}
+    (witness : Witness) {context : Context Loc Val}
     {body : Witness -> IProp Loc Val} {goal : IProp Loc Val}
-    (replaced : context.replace source [⟨specializedName, body witness⟩] =
-      some (.persistent, IProp.forall_ body, updated)) :
-    Valid updated goal -> Valid context goal := by
-  intro valid
-  have replacementSound : IProp.Entails (IProp.forall_ body)
-      (Environment.andDenote [⟨specializedName, body witness⟩]) :=
-    IProp.entails_trans (IProp.forall_elim body witness)
-      (IProp.and_intro (IProp.entails_refl _) (IProp.truth_intro _))
-  exact IProp.entails_trans
-    (Context.replacePersistent_sound replaced replacementSound) valid
+    (found : context.persistent.lookup source = some (IProp.forall_ body)) :
+    Valid (context.snoc .persistent specializedName (body witness)) goal ->
+    Valid context goal := by
+  intro valid heap step holds
+  obtain ⟨persistentHeap, spatialHeap, disjoint, union,
+    persistentHolds, spatialHolds⟩ := holds
+  have universalHolds :=
+    Environment.and_lookup_sound found Heap.empty step persistentHolds
+  have instanceHolds := universalHolds witness
+  have updatedPersistent :=
+    IProp.always_and_intro (body witness) context.persistent.andDenote
+      persistentHeap step ⟨instanceHolds, persistentHolds⟩
+  exact valid heap step
+    ⟨persistentHeap, spatialHeap, disjoint, union, updatedPersistent, spatialHolds⟩
 
 theorem forallElimSpatial (source specializedName : String) {Witness : Type w}
     (witness : Witness) {context updated : Context Loc Val}
