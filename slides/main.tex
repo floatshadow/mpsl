@@ -32,7 +32,6 @@
 \author[Siyuan Zhu et al.]{Siyuan Zhu \and Qihao Lian}
 \institute[Peking University]{School of Computer Science, Peking University}
 \date{July 2026}
-\pkufootertitle{MPSL Project Report}
 
 \begin{document}
 
@@ -54,7 +53,7 @@
     \begin{column}{0.46\textwidth}
       \minorhead{Ordinary assumptions}
       \begin{itemize}
-        \item reusable facts;
+        \item duplicable facts;
         \item contraction is valid;
         \item example: $x=3$.
       \end{itemize}
@@ -132,7 +131,7 @@
   \muted{Motivation only: MPSL does not implement recursive types or predicates.}
 \end{frame}
 
-\begin{frame}{Step propositions are downward closed}
+\begin{frame}{Step-indexed propositions are downward closed}
   \begin{itemize}
     \item \texttt{SProp}: a downward-closed predicate on $\mathbb N$;
     \item $n\in P$: $P$ is observable for $n$ steps;
@@ -280,7 +279,7 @@ private partial def compileExpr
       \begin{itemize}
         \item every syntax node returns its inferred \texttt{Ty};
         \item \texttt{Context} records binder names and object types;
-        \item identifiers compile to typed de Bruijn \texttt{Var}s;
+        \item identifiers compile to de Bruijn indices;
         \item \texttt{expectType} rejects mismatches immediately.
       \end{itemize}
     \end{column}
@@ -373,14 +372,14 @@ elab_rules : term <= expectedType
   \end{itemize}
 \end{frame}
 
-\begin{frame}{IProp adds resources to step propositions}
+\begin{frame}{IProp adds resources to step-indexed propositions}
   \minorhead{Assertion domain}
   \keyeq{\IProp(\mathit{Loc},\mathit{Val})
     = \left\{P : \Heap(\mathit{Loc},\mathit{Val})\to\mathsf{SProp}
       \mid P\text{ is heap-monotone}\right\}}
 
   \begin{itemize}
-    \item $P(h)$: a downward-closed proposition over observation steps;
+    \item $P(h)$: a downward-closed, step-indexed proposition;
     \item $h_1\sqsubseteq h_2$: resource extension;
     \item heap monotonicity:
   \end{itemize}
@@ -447,8 +446,8 @@ elab_rules : term <= expectedType
   \end{columns}
 
   \minorhead{Proof-mode representation}
-  \keyeq{\Gamma_p;\Gamma_s\vdash_{\texttt{MPSL}}Q
-    \quad:=\quad\Sem{\Gamma_p;\Gamma_s}\Entails_{\!i}Q}
+  \keyeq{\Gamma;\Delta\vdash_{\texttt{MPSL}}Q
+    \quad:=\quad\Sem{\Gamma;\Delta}\Entails_{\!i}Q}
 
   \begin{itemize}
     \item names expose object-logic structure to goal-directed tactics.
@@ -472,141 +471,195 @@ hCell : loc(0) |-> val("v")
     \begin{column}{0.45\textwidth}
       \begin{itemize}
         \item pure context: Lean variables and propositions;
-        \item $\Gamma_p$: persistent context, reusable;
-        \item $\Gamma_s$: spatial context, explicitly partitioned;
+        \item $\Gamma$: persistent context, duplicable;
+        \item $\Delta$: spatial context, explicitly partitioned;
         \item names are unique across both MPSL contexts.
       \end{itemize}
     \end{column}
   \end{columns}
 
   \vspace{0.25cm}
-  \keyeq{\Sem{\Gamma_p;\Gamma_s}
+  \keyeq{\Sem{\Gamma;\Delta}
     =\Always(P_1\land\cdots\land P_m)\Sep(Q_1\Sep\cdots\Sep Q_n)}
 \end{frame}
 
-\begin{frame}{Tactic effects: enter and decompose}
-  \minorhead{\texttt{mintro h}}
-  \keyeq{P\Entails Q
-    \quad\Longrightarrow\quad
-    \varnothing\;;\;h:P\ \vdash_{\texttt{MPSL}} Q}
-
-  \minorhead{\texttt{mdestruct h as hP hQ} \;for spatial $P\Sep Q$}
-  \keyeq{\Gamma_p\;;\;h:P\Sep Q,\Gamma_s\ \vdash_{\texttt{MPSL}} R
-    \quad\Longrightarrow\quad
-    \Gamma_p\;;\;h_P:P,h_Q:Q,\Gamma_s\ \vdash_{\texttt{MPSL}} R}
-
-  \minorhead{\texttt{mpersistent h}}
-  \keyeq{\Gamma_p\;;\;h:P,\Gamma_s\ \vdash_{\texttt{MPSL}} R
-    \quad\Longrightarrow\quad
-    \begin{cases}
-      P\Entails_{\!i}\Always P,\\
-      h:P,\Gamma_p\;;\;\Gamma_s\ \vdash_{\texttt{MPSL}} R.
-    \end{cases}}
-\end{frame}
-
-\begin{frame}{Tactic effects: branch the goal}
-  \minorhead{\texttt{msplit}}
-  \keyeq{\Gamma_p\;;\;\Gamma_s\ \vdash_{\texttt{MPSL}} P\land Q
-    \quad\Longrightarrow\quad
-    \begin{cases}
-      \Gamma_p\;;\;\Gamma_s\ \vdash_{\texttt{MPSL}} P,\\
-      \Gamma_p\;;\;\Gamma_s\ \vdash_{\texttt{MPSL}} Q.
-    \end{cases}}
-
-  \minorhead{\texttt{msep [hQ]}}
-  \keyeq{\Gamma_p\;;\;h_P:P,h_Q:Q\ \vdash_{\texttt{MPSL}} Q\Sep P
-    \quad\Longrightarrow\quad
-    \begin{cases}
-      \Gamma_p\;;\;h_Q:Q\ \vdash_{\texttt{MPSL}} Q,\\
-      \Gamma_p\;;\;h_P:P\ \vdash_{\texttt{MPSL}} P.
-    \end{cases}}
-
-  \begin{itemize}
-    \item \texttt{msplit}: both branches keep the contexts;
-    \item \texttt{msep}: persistent context copied, spatial context partitioned.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Tactic effects: close and focus}
-  \minorhead{\texttt{mexact h}}
-  \keyeq{\Gamma_p\;;\;h:P,\Gamma_s\ \vdash_{\texttt{MPSL}} P
-    \quad\Longrightarrow\quad\checkmark}
-
-  \minorhead{\texttt{mapply hImp hP}}
-  \keyeq{\Gamma_p\;;\;h_{\mathrm{Imp}}:P\Rightarrow Q,h_P:P,\Gamma_s
-    \ \vdash_{\texttt{MPSL}} Q
-    \quad\Longrightarrow\quad\checkmark}
-
-  \minorhead{\texttt{mframe hP}}
-  \keyeq{\Gamma_p\;;\;h_P:P,\Gamma_s\ \vdash_{\texttt{MPSL}} P\Sep Q
-    \quad\Longrightarrow\quad
-    \Gamma_p\;;\;\Gamma_s\ \vdash_{\texttt{MPSL}} Q}
-
-  \begin{itemize}
-    \item other closers: \texttt{massumption}, \texttt{mtruth},
-      \texttt{mfalse h}, \texttt{mrefl}.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Tactic effects: binders and later}
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.49\textwidth}
-      \minorhead{\texttt{mforall x}}
-      \[
-        \begin{aligned}
-        &\Delta\mid\Gamma_p;\Gamma_s\vdash
-          \forall\,x:\tau.\,P(x)\\
-        &\quad\Longrightarrow
-          \Delta,x:\Sem{\tau}\mid\Gamma_p;\Gamma_s\vdash P(x)
-        \end{aligned}
-      \]
-
-      \minorhead{\texttt{mexists t}}
-      \[
-        \begin{aligned}
-        &\Delta\mid\Gamma_p;\Gamma_s\vdash
-          \exists\,x:\tau.\,P(x)\\
-        &\quad\Longrightarrow
-          \Delta\mid\Gamma_p;\Gamma_s\vdash P(t)
-        \end{aligned}
-      \]
-
-      \minorhead{\texttt{mopenexists h as x hx}}
-      \[
-        \begin{aligned}
-        &\Delta\mid\Gamma_p;h:\exists\,x:\tau.\,P(x),\Gamma_s\vdash Q\\
-        &\quad\Longrightarrow
-        \Delta,x:\Sem{\tau}\mid\Gamma_p;h_x:P(x),\Gamma_s\vdash Q
-        \end{aligned}
-      \]
+\begin{frame}[fragile]{Tactic effects}
+  \minorhead{\texttt{mintro h} --- enter proof mode}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.43\textwidth}
+      \muted{Before}
+\begin{lstlisting}[style=leancode]
+|-
+`P (*@$\Entails$@*) `Q
+\end{lstlisting}
     \end{column}
-    \begin{column}{0.47\textwidth}
-      \minorhead{\texttt{mlater}}
-      \[
-        \Gamma_p;\Gamma_s\vdash\Later P
-        \Longrightarrow
-        \Gamma_p;\Gamma_s\vdash P
-      \]
-
-      \minorhead{\texttt{mopenlater h as hP}}
-      \[
-        \begin{aligned}
-        &\Gamma_p;h:\Later P,\Gamma_s\vdash\Later Q\\
-        &\quad\Longrightarrow
-        \Gamma_p;h_P:P,\Gamma_s\vdash Q
-        \end{aligned}
-      \]
-
-      \minorhead{\texttt{mopen h as hP}}
-      \[
-        \begin{aligned}
-        &h:\Always P,\Gamma_p;\Gamma_s\vdash Q\\
-        &\quad\Longrightarrow
-        h_P:P,\Gamma_p;\Gamma_s\vdash Q
-        \end{aligned}
-      \]
+    \begin{column}{0.08\textwidth}
+      \centering\Large$\Longrightarrow$
+    \end{column}
+    \begin{column}{0.43\textwidth}
+      \muted{After}
+\begin{lstlisting}[style=leancode]
+|-
+------------------ (*@$\Always$@*)
+h : `P
+------------------ (*@$\Sep$@*)
+`Q
+\end{lstlisting}
     \end{column}
   \end{columns}
+
+  \vfill
+  \begin{itemize}
+    \item the entailment premise becomes a named spatial hypothesis.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Tactic effects}
+  \minorhead{\texttt{mdestruct h as hP hQ} --- decompose spatial $P\Sep Q$}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.43\textwidth}
+      \muted{Before}
+\begin{lstlisting}[style=leancode]
+|-
+------------------ (*@$\Always$@*)
+h : `P (*@$\Sep$@*) `Q
+------------------ (*@$\Sep$@*)
+`R
+\end{lstlisting}
+    \end{column}
+    \begin{column}{0.08\textwidth}
+      \centering\Large$\Longrightarrow$
+    \end{column}
+    \begin{column}{0.43\textwidth}
+      \muted{After}
+\begin{lstlisting}[style=leancode]
+|-
+------------------ (*@$\Always$@*)
+hP : `P
+hQ : `Q
+------------------ (*@$\Sep$@*)
+`R
+\end{lstlisting}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Tactic effects}
+  \minorhead{\texttt{msep [hQ]} --- partition the spatial context}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.39\textwidth}
+      \muted{Before}
+\begin{lstlisting}[style=leancode]
+|-
+hBox : (*@$\Always$@*) `R
+------------------ (*@$\Always$@*)
+hP : `P
+hQ : `Q
+------------------ (*@$\Sep$@*)
+`Q (*@$\Sep$@*) `P
+\end{lstlisting}
+    \end{column}
+    \begin{column}{0.07\textwidth}
+      \centering\Large$\Longrightarrow$
+    \end{column}
+    \begin{column}{0.50\textwidth}
+      \muted{After: two goals}\par\vspace{0.08cm}
+      {\small\bfseries Goal 1\par}
+\begin{lstlisting}[style=leancode]
+|-
+hBox : (*@$\Always$@*) `R
+------------------ (*@$\Always$@*)
+hQ : `Q
+------------------ (*@$\Sep$@*)
+`Q
+\end{lstlisting}
+      {\small\bfseries Goal 2\par}
+\begin{lstlisting}[style=leancode]
+|-
+hBox : (*@$\Always$@*) `R
+------------------ (*@$\Always$@*)
+hP : `P
+------------------ (*@$\Sep$@*)
+`P
+\end{lstlisting}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Tactic effects}
+  \minorhead{\texttt{mpersistent h} --- move a hypothesis into $\Gamma$}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.39\textwidth}
+      \muted{Before}
+\begin{lstlisting}[style=leancode]
+|-
+------------------ (*@$\Always$@*)
+h : `P
+hQ : `Q
+------------------ (*@$\Sep$@*)
+`R
+\end{lstlisting}
+    \end{column}
+    \begin{column}{0.07\textwidth}
+      \centering\Large$\Longrightarrow$
+    \end{column}
+    \begin{column}{0.50\textwidth}
+      \muted{After: two goals}\par\vspace{0.08cm}
+      {\small\bfseries Goal 1\par}
+\begin{lstlisting}[style=leancode]
+|-
+------------------ (*@$\Always$@*)
+hCert : `P
+------------------ (*@$\Sep$@*)
+(*@$\Always$@*) `P
+\end{lstlisting}
+      {\small\bfseries Goal 2\par}
+\begin{lstlisting}[style=leancode]
+|-
+h : `P
+------------------ (*@$\Always$@*)
+hQ : `Q
+------------------ (*@$\Sep$@*)
+`R
+\end{lstlisting}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Tactic summary}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.48\textwidth}
+      \minorhead{Contexts}
+      \begin{itemize}
+        \item \texttt{mintro}, \texttt{mintro \#}, \texttt{mdestruct};
+        \item \texttt{mpersistent}, \texttt{mclear}, \texttt{mstop}.
+      \end{itemize}
+
+      \minorhead{Closing and equality}
+      \begin{itemize}
+        \item \texttt{mexact}, \texttt{massumption}, \texttt{mtruth}, \texttt{mfalse};
+        \item \texttt{mrefl}, \texttt{msymm}, \texttt{mtrans}.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \minorhead{Connectives and resources}
+      \begin{itemize}
+        \item \texttt{msplit}, \texttt{mleft}, \texttt{mright};
+        \item \texttt{msep}, \texttt{msepR}, \texttt{mapply};
+        \item \texttt{mframe}, \texttt{mnormalize}.
+      \end{itemize}
+
+      \minorhead{Quantifiers and modalities}
+      \begin{itemize}
+        \item \texttt{mforall}, \texttt{mexists}, \texttt{mopenexists};
+        \item \texttt{mspecialize}, \texttt{malways}, \texttt{mopen};
+        \item \texttt{mlater}, \texttt{mopenlater}, \texttt{mlob}.
+      \end{itemize}
+    \end{column}
+  \end{columns}
+
+  \vfill
+  \muted{Variants accept explicit spatial partitions, frames, and pure witnesses.}
 \end{frame}
 
 \begin{frame}[fragile]{Proof: spatial partition}
@@ -659,7 +712,7 @@ msep [hR]
   \end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]{Proof: persistent reuse}
+\begin{frame}[fragile]{Proof: persistent duplication}
 \begin{lstlisting}[style=leancode]
 example (P Q : Formula Nat String) :
     mpsl{ ((*@$\Always$@*) `P) (*@$\Sep$@*) `Q } (*@$\Entails$@*)
@@ -678,7 +731,7 @@ example (P Q : Formula Nat String) :
 
   \begin{itemize}
     \item \texttt{mpersistent} requires a persistence certificate;
-    \item persistent $h_P$ is available in both spatial branches.
+    \item persistent $h_P$ is duplicated across both spatial branches.
   \end{itemize}
 \end{frame}
 
@@ -709,7 +762,7 @@ example (P Q : Formula Nat String) :
   \end{columns}
 \end{frame}
 
-\begin{frame}{Three points to retain}
+\begin{frame}{Conclusions}
   \begin{enumerate}
     \item \textbf{Separation tracks ownership.}
       \quad $P\Sep Q$ partitions the spatial resource.
@@ -721,7 +774,8 @@ example (P Q : Formula Nat String) :
 
   \vspace{0.65cm}
   \begin{center}
-    \Large\textcolor{PKURed}{Higher-order, step-indexed entailments in a small checked core.}
+    \Large\textcolor{PKURed}{MPSL mechanizes higher-order, step-indexed
+      separation-logic entailments in Lean.}
   \end{center}
 \end{frame}
 
