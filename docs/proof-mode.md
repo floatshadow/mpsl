@@ -241,9 +241,35 @@ context.
 | `mopen h as hP` | Replace persistent `h : □ P` with persistent `hP : P`. Move a spatial boxed hypothesis first with `mpersistent`. |
 | `mlater` | Change `▷ P` to `P` using later introduction. The context is unchanged. |
 | `mopenlater h as hP` | On goal `▷ Q`, replace spatial `h : ▷ P` with spatial `hP : P` and prove `Q` under later monotonicity. |
+| `mlob ih` | Apply Löb induction to the current goal and add the guarded induction hypothesis `ih` to the persistent zone. |
 
-There is no Löb induction, guarded fixed point, or general rule for stripping
-`▷` from an arbitrary hypothesis and unguarded goal.
+The semantic Löb law is:
+
+```text
+▷ P ⇒ P
+────────
+   P
+```
+
+When the spatial zone is empty, `mlob ih` gives `ih : ▷ R`. With a nonempty
+spatial environment `Γs`, the tactic first generalizes those resources into
+the induction predicate and then restores their names:
+
+```text
+Γp, ih : ▷ (Γs −∗ R) ; Γs ⊢ R
+────────────────────────────────
+             Γp ; Γs ⊢ R
+```
+
+Here `Γs` inside the wand denotes the separating conjunction of the current
+spatial hypotheses. This records that applying the induction hypothesis needs
+the same kind of owned resources; an ordinary persistent `ih : ▷ R` would
+incorrectly make `R` independent of them. This is the same revert, apply core
+Löb, and reintroduce sequence used by Iris proof mode.
+
+Löb induction does not add guarded recursive predicates or a fixed-point
+operator. There is also no general rule for stripping `▷` from an arbitrary
+hypothesis and unguarded goal.
 
 ## Structural and low-level tactics
 

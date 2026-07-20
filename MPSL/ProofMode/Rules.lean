@@ -516,6 +516,84 @@ theorem laterIntro {context : Context Loc Val} {goal : IProp Loc Val} :
   intro valid
   exact IProp.entails_trans valid (IProp.later_intro goal)
 
+/-- Löb induction when there are no spatial hypotheses.
+
+```text
+Γp, ih : ▷ R ; · ⊢ R
+─────────────────────
+      Γp ; · ⊢ R
+```
+-/
+theorem lobEmpty (name : String) {persistent : Environment Loc Val}
+    {goal : IProp Loc Val} :
+    Valid ((Context.mk persistent []).snoc .persistent name (IProp.later goal)) goal ->
+    Valid (Context.mk persistent []) goal := by
+  intro valid heap step contextHolds
+  induction step generalizing heap with
+  | zero =>
+      apply valid heap 0
+      obtain ⟨_, _, _, _, persistentHolds, _⟩ := contextHolds
+      refine ⟨Heap.empty, heap, Heap.disjoint_empty_left heap,
+        Heap.union_empty_left heap, ?_, True.intro⟩
+      exact ⟨SProp.zero_mem_later (goal.holds Heap.empty), persistentHolds⟩
+  | succ previous induction =>
+      apply valid heap (Nat.succ previous)
+      obtain ⟨_, _, _, _, persistentHolds, _⟩ := contextHolds
+      refine ⟨Heap.empty, heap, Heap.disjoint_empty_left heap,
+        Heap.union_empty_left heap, ?_, True.intro⟩
+      refine ⟨(SProp.succ_mem_later_iff (goal.holds Heap.empty) previous).2 ?_,
+        persistentHolds⟩
+      apply induction Heap.empty
+      refine ⟨Heap.empty, Heap.empty, Heap.disjoint_empty_left Heap.empty,
+        Heap.union_empty_left Heap.empty, ?_, True.intro⟩
+      exact persistent.andDenote.holds Heap.empty |>.downward
+        (Nat.le_succ previous) persistentHolds
+
+/-- Löb induction over the whole current spatial sequent.
+
+The induction predicate is `Γs −∗ R`, rather than just `R`, so the visible
+spatial hypotheses remain available without being duplicated between steps.
+
+```text
+Γp, ih : ▷ (Γs −∗ R) ; Γs ⊢ R
+────────────────────────────────
+             Γp ; Γs ⊢ R
+```
+-/
+theorem lob (name : String) {context : Context Loc Val} {goal : IProp Loc Val} :
+    Valid (context.snoc .persistent name
+      (IProp.later (IProp.wand context.spatial.sepDenote goal))) goal ->
+    Valid context goal := by
+  intro valid heap step contextHolds
+  induction step using Nat.strongRecOn generalizing heap with
+  | ind step induction =>
+      apply valid heap step
+      obtain ⟨persistentHeap, spatialHeap, disjoint, combined,
+        persistentHolds, spatialHolds⟩ := contextHolds
+      have spatialHoldsWhole := context.spatial.sepDenote.monotone
+        (Heap.subheap_of_union_eq_right disjoint combined) spatialHolds
+      refine ⟨Heap.empty, heap, Heap.disjoint_empty_left heap,
+        Heap.union_empty_left heap, ?_, spatialHoldsWhole⟩
+      change step ∈ (IProp.and
+        (IProp.later (IProp.wand context.spatial.sepDenote goal))
+        context.persistent.andDenote).holds Heap.empty
+      refine ⟨?_, persistentHolds⟩
+      cases step with
+      | zero =>
+          exact SProp.zero_mem_later
+            ((IProp.wand context.spatial.sepDenote goal).holds Heap.empty)
+      | succ previous =>
+          apply (SProp.succ_mem_later_iff
+            ((IProp.wand context.spatial.sepDenote goal).holds Heap.empty)
+            previous).2
+          intro smaller included extra _ spatialHoldsExtra
+          rw [Heap.union_empty_left]
+          apply induction smaller (by omega) extra
+          refine ⟨Heap.empty, extra, Heap.disjoint_empty_left extra,
+            Heap.union_empty_left extra, ?_, spatialHoldsExtra⟩
+          exact context.persistent.andDenote.holds Heap.empty |>.downward
+            (Nat.le_trans included (Nat.le_succ previous)) persistentHolds
+
 /-- Later monotonicity at a named spatial hypothesis.
 
 ```text

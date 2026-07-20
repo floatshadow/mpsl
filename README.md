@@ -72,4 +72,4 @@ lake build MPSLPrettyPrintTests
 
 MPSL intentionally omits program syntax, weakest preconditions, Hoare logic,
 generic resource algebras, ghost state, `Own`, view shifts, fancy updates,
-invariants, guarded recursion, and Löb induction.
+invariants, guarded recursion, and fixed-point operators.

@@ -32,6 +32,7 @@ syntax (name := malways) "malways" : tactic
 syntax (name := mopenAlways) "mopen" ident "as" ident : tactic
 syntax (name := mlater) "mlater" : tactic
 syntax (name := mopenLater) "mopenlater" ident "as" ident : tactic
+syntax (name := mlob) "mlob " ident : tactic
 syntax (name := mclear) "mclear " ident : tactic
 syntax (name := mframe) "mframe " ident : tactic
 syntax (name := mframeMany) "mframe" "[" ident,+ "]" : tactic
@@ -319,6 +320,13 @@ macro_rules (kind := mopenLater)
       let label := Lean.quote name.getId.toString
       `(tactic| _mpsl_guard_replace $source [$name];
         apply MPSL.ProofMode.laterMonoSpatial $sourceLabel $label (by rfl))
+
+macro_rules (kind := mlob)
+  | `(tactic| mlob $name:ident) => do
+      let label := Lean.quote name.getId.toString
+      `(tactic| _mpsl_guard_fresh $name; first
+        | apply MPSL.ProofMode.lobEmpty $label
+        | apply MPSL.ProofMode.lob $label)
 
 macro_rules (kind := mclear)
   | `(tactic| mclear $name:ident) => do

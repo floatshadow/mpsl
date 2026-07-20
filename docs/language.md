@@ -241,6 +241,15 @@ P =ₙ Q  iff  ∀ m <= n, (m ∈ P ↔ m ∈ Q)
 The later proposition holds at step zero and shifts positive observations by
 one.
 
+This interpretation validates Löb induction by induction on the observation
+step:
+
+```text
+(▷ P ⇒ P) ⊢ P
+```
+
+The law does not require guarded recursive syntax or a fixed-point operator.
+
 ## Assertions and entailment
 
 An assertion maps owned heaps to step propositions and is monotone under heap
@@ -321,4 +330,3 @@ it does not represent execution of a program step.
 All implemented constructors are proved non-expansive. Their BI, modal,
 quantifier, equality, and points-to laws are proved in the semantic layer and
 exercised by the semantic regression suite.
-

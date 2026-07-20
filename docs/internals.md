@@ -196,6 +196,14 @@ consequence.
 semantic connective laws to implement introduction, elimination, framing,
 quantifiers, equality, and modalities.
 
+Löb induction is certified at two levels. `IProp.lob` proves the object-logic
+law by induction on the step index. The proof-mode rule keeps persistent
+assumptions in place, generalizes a nonempty spatial environment as
+`Γs −∗ R`, installs its later as the persistent induction hypothesis, and
+restores the named spatial hypotheses. The empty-spatial specialization uses
+`▷ R` directly. This prevents the induction hypothesis from duplicating owned
+resources.
+
 Rule theorems retain raw contexts until the proof is complete. Folding the
 context too early would erase names and zones. Semantically, however, every
 rule proves ordinary `IProp.Entails`; the structured state adds bookkeeping,
@@ -307,5 +315,5 @@ MPSL does not include:
 - invariants or view shifts;
 - fractional points-to permissions;
 - recursive predicates, guarded recursion, completeness, contractiveness, or
-  Löb induction;
+  fixed-point operators;
 - automatic frame selection or unrestricted spatial contraction.

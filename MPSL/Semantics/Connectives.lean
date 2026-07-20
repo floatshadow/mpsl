@@ -369,9 +369,9 @@ semantic non-expansive substitution rule is already certified here.
 
 MPSL currently has no syntax for internal biconditional, negation, affinely,
 absorbingly, or except-0, so their derived laws are not exposed. Generic
-resource algebras, `Own`, ghost state, view shifts, Löb induction,
-contractiveness, guarded fixed points, and weakest preconditions are deliberate
-non-goals. Converses of the one-way `□` and `▷` rules above are not claimed.
+resource algebras, `Own`, ghost state, view shifts, contractiveness, guarded
+fixed points, and weakest preconditions are deliberate non-goals. Converses of
+the one-way `□` and `▷` rules above are not claimed.
 -/
 
 theorem truth_intro (proposition : IProp Loc Val) : proposition ⊢ᵢ truth := by
@@ -730,6 +730,31 @@ theorem later_intro (proposition : IProp Loc Val) : proposition ⊢ᵢ later pro
   | succ previous =>
       apply (SProp.succ_mem_later_iff (proposition.holds heap) previous).2
       exact proposition.holds heap |>.downward (Nat.le_succ previous) holds
+
+/-- Löb induction for the step-indexed later modality.
+
+```text
+▷ P ⇒ P
+────────
+   P
+```
+-/
+theorem lob (proposition : IProp Loc Val) :
+    imp (later proposition) proposition ⊢ᵢ proposition := by
+  intro heap step implicationHolds
+  induction step with
+  | zero =>
+      exact implicationHolds 0 (Nat.le_refl 0) heap (Heap.subheap_refl heap)
+        (SProp.zero_mem_later (proposition.holds heap))
+  | succ previous induction =>
+      have implicationHoldsPrevious :=
+        (imp (later proposition) proposition).holds heap |>.downward
+          (Nat.le_succ previous) implicationHolds
+      have propositionHoldsPrevious := induction implicationHoldsPrevious
+      exact implicationHolds (Nat.succ previous) (Nat.le_refl _) heap
+        (Heap.subheap_refl heap)
+        ((SProp.succ_mem_later_iff (proposition.holds heap) previous).2
+          propositionHoldsPrevious)
 
 theorem later_or_intro (left right : IProp Loc Val) :
     or (later left) (later right) ⊢ᵢ later (or left right) := by
