@@ -1,0 +1,13 @@
+# LaTeX build artifacts in the slides directory.
+/*.aux
+/*.fdb_latexmk
+/*.fls
+/*.log
+/*.nav
+/*.out
+/*.pdf
+/*.snm
+/*.synctex.gz
+/*.toc
+/*.vrb
+/*.xdv

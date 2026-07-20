@@ -1,0 +1,80 @@
+% Shared mathematical notation and presentation helpers.
+
+% Logic.
+\newcommand{\IProp}{\mathsf{iProp}}
+\newcommand{\Heap}{\mathsf{Heap}}
+\newcommand{\PropCat}{\mathbf{Prop}}
+\newcommand{\Later}{\mathord{\triangleright}}
+\newcommand{\Always}{\mathord{\Box}}
+\newcommand{\Sep}{\mathbin{*}}
+\newcommand{\Wand}{\mathbin{-\!*}}
+\newcommand{\Entails}{\mathrel{\vdash}}
+\newcommand{\Sem}[1]{\llbracket #1 \rrbracket}
+\newcommand{\atstep}[2]{#1_{#2}}
+\newcommand{\disjoint}{\mathrel{\#}}
+\newcommand{\heapunion}{\mathbin{\uplus}}
+\newcommand{\true}{\mathsf{True}}
+\newcommand{\false}{\mathsf{False}}
+
+% Repeated slide elements.
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
+\newcommand{\kw}[1]{\textcolor{PKURed}{\textbf{#1}}}
+\newcommand{\slidelead}[1]{{\large\bfseries\textcolor{black!86}{#1}}\par\vspace{0.45em}}
+\newcommand{\minorhead}[1]{{\normalsize\bfseries\textcolor{black!78}{#1}}\par\vspace{0.25em}}
+\newcommand{\muted}[1]{\textcolor{black!58}{#1}}
+\newcommand{\keyeq}[1]{%
+  \begin{center}
+    \setlength{\fboxsep}{8pt}%
+    \colorbox{PKURed!7}{\ensuremath{\displaystyle #1}}
+  \end{center}}
+
+\definecolor{ResourceBlue}{RGB}{38,104,166}
+\definecolor{PersistentGreen}{RGB}{33,122,92}
+\definecolor{SoftGray}{RGB}{245,246,248}
+
+\tikzset{
+  pptbox/.style={draw=black!28, rounded corners=2pt, align=center,
+    font=\scriptsize, inner xsep=6pt, inner ysep=4pt,
+    minimum height=0.58cm, fill=white},
+  pptarrow/.style={->, thick, >=Stealth, draw=black!65},
+  resource/.style={draw=ResourceBlue, fill=ResourceBlue!8, rounded corners=2pt,
+    align=center, inner xsep=8pt, inner ysep=6pt},
+  persistent/.style={draw=PersistentGreen, fill=PersistentGreen!8, rounded corners=2pt,
+    align=center, inner xsep=8pt, inner ysep=6pt},
+  stage/.style={circle, draw=PKURed!70, fill=PKURed!5, minimum size=7mm,
+    inner sep=0pt, font=\small},
+  smallnote/.style={font=\scriptsize, text=black!58}
+}
+
+% Lean snippets. Unicode logical symbols are mapped to math-mode glyphs.
+\lstdefinelanguage{Lean}{
+  morekeywords={example,def,theorem,by,import,open,scoped,exact,where,forall},
+  sensitive=true,
+  morecomment=[l]{--},
+  morestring=[b]",
+}
+\lstdefinestyle{leancode}{
+  language=Lean,
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\bfseries\color{PKURed!85!black},
+  commentstyle=\itshape\color{black!50},
+  stringstyle=\color{PersistentGreen!85!black},
+  backgroundcolor=\color{SoftGray},
+  frame=single,
+  rulecolor=\color{black!16},
+  framesep=5pt,
+  numbers=none,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  escapeinside={(*@}{@*)},
+  literate=
+    {▷}{{$\Later$}}1
+    {□}{{$\Always$}}1
+    {⊢}{{$\Entails$}}1
+    {∗}{{$\Sep$}}1
+    {↦}{{$\mapsto$}}1
+    {∀}{{$\forall$}}1
+    {∃}{{$\exists$}}1
+    {⇒}{{$\Rightarrow$}}1
+}
