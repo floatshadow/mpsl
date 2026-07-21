@@ -694,7 +694,7 @@ hQ : `Q
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.60\textwidth}
 \begin{lstlisting}[style=leancode]
-example (P Q : Formula Nat String) :
+example (P Q : Formula Location Value) :
     mpsl{ `P (*@$\Sep$@*) `Q } (*@$\Entails$@*)
       mpsl{ `Q (*@$\Sep$@*) `P } := by
   mintro h
@@ -742,7 +742,7 @@ msep [hR]
 
 \begin{frame}[fragile]{Proof: persistent duplication}
 \begin{lstlisting}[style=leancode]
-example (P Q : Formula Nat String) :
+example (P Q : Formula Location Value) :
     mpsl{ ((*@$\Always$@*) `P) (*@$\Sep$@*) `Q } (*@$\Entails$@*)
       mpsl{ `P (*@$\Sep$@*) (`P (*@$\Sep$@*) `Q) } := by
   mintro h
