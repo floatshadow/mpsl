@@ -427,64 +427,55 @@ elab_rules : term <= expectedType
   \]
 \end{frame}
 
-\begin{frame}{Soundness is semantic step inclusion}
-  \minorhead{Semantic entailment}
-  \keyeq{P\Entails_{\!i}Q
-    \quad\Longleftrightarrow\quad
-    \forall h,n,\; n\in P(h)\Rightarrow n\in Q(h)}
-
-  \minorhead{Formula judgment}
-  \[
-    P\Entails Q
-    \quad\Longleftrightarrow\quad
-    \Sem{P}\Entails_{\!i}\Sem{Q}.
-  \]
-
-  \minorhead{Soundness target}
-  \keyeq{P\Entails Q
-    \quad\Longrightarrow\quad
-    \forall h,n,\;n\in\Sem{P}(h)\Rightarrow n\in\Sem{Q}(h)}
-
-  \begin{itemize}
-    \item proof-mode rules are theorems over \texttt{IProp.Entails};
-    \item tactics compose theorem applications; Lean checks the proof term.
-  \end{itemize}
-\end{frame}
-
 \begin{frame}{Why a proof mode?}
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.47\textwidth}
-      \minorhead{Meta-level goal}
+      \minorhead{Meta-level entailment}
       \[
         H_1:\phi_1,\ldots,H_n:\phi_n
         \;\vdash_{\mathrm{Lean}}\;\psi
       \]
       \begin{itemize}
-        \item named hypotheses;
-        \item local context transformations;
-        \item \texttt{intro}, \texttt{split}, \texttt{exact}.
+        \item $\phi_i,\psi : \mathsf{Prop}$ in Lean's meta-logic;
+        \item named hypotheses and a goal in Lean;
+        \item Lean manages the proof context.
       \end{itemize}
-    \end{column}
+    \end{column}%
     \begin{column}{0.49\textwidth}
       \minorhead{Embedded entailment}
       \[
-        \vdash_{\mathrm{Lean}}\;(P\Entails Q)
+        \vdash_{\mathrm{Lean}}\;
+        \bigl(H_1:P_1,\ldots,H_n:P_n
+          \;\vdash_{\texttt{MPSL}}\;Q\bigr)
       \]
       \begin{itemize}
-        \item $P$: one object-language term;
-        \item subformulas of $P$: unnamed;
-        \item Lean sees \texttt{IProp.Entails}.
+        \item $P_i,Q : \IProp$ are object-language assertions;
+        \item connectives belong to separation logic;
+        \item MPSL exposes object-level named hypotheses and a gaol in Bunch Implication form.
       \end{itemize}
     \end{column}
   \end{columns}
+\end{frame}
 
-  \minorhead{Proof-mode representation}
-  \keyeq{\Gamma;\Delta\vdash_{\texttt{MPSL}}Q
-    \quad:=\quad\Sem{\Gamma;\Delta}\Entails_{\!i}Q}
+\begin{frame}{Semantic interpretation and soundness}
+  \minorhead{Representative interpretations}
+  \begin{align*}
+    n\in\Sem{\ell\mapsto v}(h)
+      &\iff \{\ell\mapsto v\}\sqsubseteq h,\\[2pt]
+    n\in\Sem{P\Sep Q}(h)
+      &\iff \exists h_1,h_2.\;
+        h_1\disjoint h_2\land h_1\heapunion h_2=h\\[-1pt]
+      &\hspace{2.2cm}\land\ n\in\Sem{P}(h_1)
+        \land n\in\Sem{Q}(h_2),\\[2pt]
+    n\in\Sem{\Later P}(h)
+      &\iff n=0\ \lor\
+        \exists m.\;n=m+1\land m\in\Sem{P}(h).
+  \end{align*}
 
-  \begin{itemize}
-    \item names expose object-logic structure to goal-directed tactics.
-  \end{itemize}
+  \minorhead{Semantic soundness}
+  \keyeq{P\Entails_{\texttt{MPSL}}Q
+    \quad\Longrightarrow\quad
+    \forall h,n.\;n\in\Sem{P}(h)\Rightarrow n\in\Sem{Q}(h)}
 \end{frame}
 
 \begin{frame}[fragile]{Persistent and spatial proof contexts}
@@ -512,8 +503,10 @@ hCell : loc(0) |-> val("v")
   \end{columns}
 
   \vspace{0.25cm}
-  \keyeq{\Sem{\Gamma;\Delta}
-    =\Always(P_1\land\cdots\land P_m)\Sep(Q_1\Sep\cdots\Sep Q_n)}
+  \keyeq{\Gamma;\Delta\Entails_{\texttt{MPSL}}Q
+    \quad \triangleq \quad
+    \Always(P_1\land\cdots\land P_m)
+      \Sep(Q_1\Sep\cdots\Sep Q_n)\Entails Q}
 \end{frame}
 
 \begin{frame}[fragile]{Tactic effects}
