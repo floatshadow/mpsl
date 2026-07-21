@@ -109,33 +109,35 @@
 \end{frame}
 
 \begin{frame}{Motivation for step-indexing}
-  \minorhead{List values}
+  \minorhead{Recursive equation}
   \keyeq{\mathcal V(\tau\ \mathsf{list})
     =\mu X.\;\{\mathsf{Nil}\}\cup
       \{\mathsf{Cons}(v,w)\mid
         v\in\mathcal V(\tau)\land w\in X\}}
 
   \begin{itemize}
-    \item the definition of list values refers to the domain $X$ being defined;
-    \item general recursive types induce recursive domain equations:
+    \item $X$ occurs in the equation whose solution is being defined;
+    \item general recursive types induce $X\cong F(X)$, whose solution
+      requires a domain-theoretic fixed-point construction.
   \end{itemize}
 
-  \keyeq{X\cong F(X)}
+  \minorhead{Later-guarded equation}
+  \keyeq{\mathcal V(\tau\ \mathsf{list})
+    =\mu X.\;\{\mathsf{Nil}\}\cup
+      \{\mathsf{Cons}(v,w)\mid
+        v\in\mathcal V(\tau)\land
+        \textcolor{PKURed}{\Later}(w\in X)\}}
 
   \begin{itemize}
-    \item domain theory constructs solutions under suitable conditions;
-    \item step indexing instead exposes finite approximations indexed by $n$.
+    \item \textcolor{PKURed}{$\Later$} weakens the recursive occurrence by one logical step, making the defining functional inductive on logical steps from $\mathbb N$.
   \end{itemize}
-
-  \vfill
-  \muted{Motivation only: MPSL does not implement recursive types or predicates.}
 \end{frame}
 
 \begin{frame}{Step-indexed propositions are downward closed}
   \begin{itemize}
     \item \texttt{SProp}: a downward-closed predicate on $\mathbb N$;
-    \item $n\in P$: $P$ is observable for $n$ steps;
-    \item truth at a larger index implies truth at every smaller index.
+    \item $n\in P$: $P$ holds for $n$ steps;
+    \item if $P$ holds for $n$ steps, it also holds for every $m\le n$.
   \end{itemize}
 
   \begin{center}
@@ -155,13 +157,13 @@
   \end{center}
 
   \vspace{0.25cm}
-  \minorhead{Finite-observation equality}
+  \minorhead{Equality up to step $n$}
   \keyeq{P=_nQ\quad\Longleftrightarrow\quad
     \forall m\le n,\;(m\in P\leftrightarrow m\in Q)}
 
 \end{frame}
 
-\begin{frame}{Later shifts the observation index}
+\begin{frame}{Later weakens the step index by one}
   \minorhead{1. Definition $n\in\Later P \mathrel{\overset{\mathrm{def}}{\Longleftrightarrow}} n=0\ \lor\ \exists m,\;n=m+1\land m\in P$}
   \par\vspace{0.10em}
   \keyeq{
@@ -171,7 +173,7 @@
   }
 
   \vspace{0.10cm}
-  \minorhead{2. \text{$\Later P$ is one weaker finite approximation of $P$.}}
+  \minorhead{2. \text{$\Later P$ is a one-step weaker approximation of $P$.}}
   \keyeq{P\Entails\Later P}
 
   \vspace{0.10cm}
@@ -792,7 +794,7 @@ example (P Q : Formula Nat String) :
   \begin{enumerate}
     \item \textbf{Separation tracks ownership.}
       \quad $P\Sep Q$ partitions the spatial resource.
-    \item \textbf{Step indexing tracks finite observation.}
+    \item \textbf{Step indexing gives finite approximations.}
       \quad \texttt{SProp}, OFEs, \texttt{NEFun}, and $\Later$.
     \item \textbf{Lean tracks the proof.}
       \quad intrinsic syntax, semantic rules, kernel checking.
