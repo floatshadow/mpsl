@@ -108,7 +108,7 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{Recursive types create recursive semantic domains}
+\begin{frame}{Motivation for step-indexing}
   \minorhead{List values}
   \keyeq{\mathcal V(\tau\ \mathsf{list})
     =\mu X.\;\{\mathsf{Nil}\}\cup
@@ -116,11 +116,11 @@
         v\in\mathcal V(\tau)\land w\in X\}}
 
   \begin{itemize}
-    \item the definition of list values refers to the domain being defined;
+    \item the definition of list values refers to the domain $X$ being defined;
     \item general recursive types induce recursive domain equations:
   \end{itemize}
 
-  \keyeq{D\cong F(D)}
+  \keyeq{X\cong F(X)}
 
   \begin{itemize}
     \item domain theory constructs solutions under suitable conditions;
@@ -138,7 +138,21 @@
     \item truth at a larger index implies truth at every smaller index.
   \end{itemize}
 
-  \keyeq{m\le n\ \land\ n\in P\quad\Longrightarrow\quad m\in P}
+  \begin{center}
+    \begin{tikzpicture}[>=Stealth, baseline=(current bounding box.center)]
+      \node (p0) at (0,0) {$0\in P$};
+      \node (le1) at (1.3,0) {$\Leftarrow$};
+      \node (p1) at (2.6,0) {$1\in P$};
+      \node (le2) at (3.9,0) {$\Leftarrow$};
+      \node (p2) at (5.2,0) {$2\in P$};
+      \node (le3) at (6.5,0) {$\Leftarrow$};
+      \node (dots) at (7.8,0) {$\cdots$};
+    \end{tikzpicture}
+
+    \vspace{0.15cm}
+    \scriptsize
+    This index chain is the diagram of \(P:\omega^{op}\to\mathbf{Prop}\).
+  \end{center}
 
   \vspace{0.25cm}
   \minorhead{Finite-observation equality}
@@ -148,40 +162,59 @@
 \end{frame}
 
 \begin{frame}{Later shifts the observation index}
-  \keyeq{n\in\Later P\quad\Longleftrightarrow\quad
-    n=0\ \lor\ \exists m,\;n=m+1\land m\in P}
+  \minorhead{1. Definition $n\in\Later P \mathrel{\overset{\mathrm{def}}{\Longleftrightarrow}} n=0\ \lor\ \exists m,\;n=m+1\land m\in P$}
+  \par\vspace{0.10em}
+  \keyeq{
+    0\in\Later P\quad\Longleftrightarrow\quad\true
+    \qquad
+    n+1\in\Later P\quad\Longleftrightarrow\quad n\in P
+  }
 
-  \begin{itemize}
-    \item $(\Later P)_0=\true$;
-    \item $(\Later P)_{n+1}=P_n$;
-    \item $P\Entails\Later P$;
-    \item $(\Later P\Rightarrow P)\Entails P$ \quad (L\"ob).
-  \end{itemize}
+  \vspace{0.10cm}
+  \minorhead{2. \text{$\Later P$ is one weaker finite approximation of $P$.}}
+  \keyeq{P\Entails\Later P}
 
-  \vspace{0.35cm}
-  \begin{center}
-    \large $\Later P$: one weaker finite approximation of $P$.
-  \end{center}
+  \vspace{0.10cm}
+  \minorhead{3. L\"ob induction}
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.28\textwidth}
+      \keyeq{(\Later P\Rightarrow P)\Entails P}
+    \end{column}
+    \begin{column}{0.68\textwidth}
+      \small To prove $P$, it suffices to prove
+      \[
+        \begin{array}{c@{\qquad}c}
+          0\in P
+            & \forall n,\;n\in P\Rightarrow n+1\in P \\[0.35em]
+          \scriptstyle
+          (0\in\Later P\Longleftrightarrow\true)\;\Entails\;0\in P
+            & \scriptstyle
+          (n+1\in\Later P\Longleftrightarrow n\in P)\;\Entails\;n+1\in P
+        \end{array}
+      \]
+    \end{column}
+  \end{columns}
 
   \vfill
   \scriptsize\muted{In MPSL, $\Later$ shifts only the logical index; it is not a program step.}
 \end{frame}
 
-\begin{frame}{OFEs control higher-order observations}
-  \minorhead{Ordered family of equivalences}
+\begin{frame}{The OFE Category}
+  \minorhead{Ordered family of equivalences \texttt{OFE} $\ni A$}
   \begin{itemize}
-    \item $=_n$ is an equivalence relation;
-    \item $n\ge m$ and $x=_n y$ imply $x=_m y$;
+    \item $=_n$ is an equivalence relation over $A$;
+    \item $n\ge m$ and $x=_n y$ imply $x=_m y$ (or, $x=_\bullet y$ is a \texttt{SProp});
     \item $(\forall n,\; x =_n y)$ implies $x = y$.
   \end{itemize}
 
-  \minorhead{Non-expansive function}
+  \minorhead{Non-expansive function \texttt{NEFun} $\ni f$ }
   \keyeq{x=_n y\quad\Longrightarrow\quad f(x)=_n f(y)}
 
   \begin{itemize}
-    \item object-language arrows denote \texttt{NEFun};
-    \item MPSL implements OFEs, not COFEs or contractive maps;
-    \item no guarded fixed-point operator is implemented.
+    \item Language types denote \texttt{OFE}s;
+    \item Language arrows denote \texttt{NEFun}s;
+    % \item Language propositions denote \texttt{SProp};
+    \item Language is given a model in the category of \texttt{OFE} and \texttt{NEFun}.
   \end{itemize}
 \end{frame}
 
